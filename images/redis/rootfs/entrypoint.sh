@@ -2,13 +2,23 @@
 set -e
 
 REDIS_CONF="/opt/redis/etc/redis.conf"
+REDIS_CONF_RUNTIME="/data/redis.conf"
 
 setup_redis_conf() {
-    # If config is mounted read-only (e.g., from Kubernetes ConfigMap), use it
-    if [ -f "$REDIS_CONF" ] && ! : >> "$REDIS_CONF" 2>/dev/null; then
+    # If config exists and is read-only (e.g., Kubernetes ConfigMap), use it directly
+    if [ -f "$REDIS_CONF" ] && [ ! -w "$REDIS_CONF" ]; then
         echo "$REDIS_CONF"
         return
     fi
+
+    # If config exists and is writable, use it
+    if [ -f "$REDIS_CONF" ] && [ -w "$REDIS_CONF" ]; then
+        echo "$REDIS_CONF"
+        return
+    fi
+
+    # Generate config in /data (always writable)
+    REDIS_CONF="$REDIS_CONF_RUNTIME"
 
     cat > "$REDIS_CONF" <<EOF
 bind 0.0.0.0
