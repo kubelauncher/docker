@@ -5,7 +5,7 @@ DATADIR="/data/openldap/data"
 CONFIGDIR="/data/openldap/config"
 
 init_ldap() {
-    if [ -f "$CONFIGDIR/cn=config.ldif" ] || [ -d "$CONFIGDIR/cn=config" ]; then
+    if [ -d "$CONFIGDIR/cn=config" ]; then
         echo "OpenLDAP already initialized, skipping."
         return
     fi
@@ -26,27 +26,42 @@ init_ldap() {
     local dc
     dc=$(echo "$root_dn" | sed 's/^dc=//;s/,dc=.*//')
 
-    cat > /tmp/slapd.ldif <<EOF
-dn: cn=config
-objectClass: olcGlobal
-cn: config
-olcPidFile: /var/run/slapd/slapd.pid
+    # Use the pre-installed default slapd config as a base
+    cp -r /opt/openldap/default-config/* "$CONFIGDIR/"
 
-dn: cn=schema,cn=config
-objectClass: olcSchemaConfig
-cn: schema
+    local ldapi_socket="/var/run/slapd/ldapi"
+    local ldapi_url="ldapi://$(echo "$ldapi_socket" | sed 's|/|%2F|g')/"
 
-include: file:///etc/ldap/schema/core.ldif
-include: file:///etc/ldap/schema/cosine.ldif
-include: file:///etc/ldap/schema/inetorgperson.ldif
-include: file:///etc/ldap/schema/nis.ldif
+    # Start a temporary slapd to configure via ldapmodify
+    slapd -F "$CONFIGDIR" -h "ldap://127.0.0.1:3890/ ${ldapi_url}" -d 0 &
+    local pid=$!
 
-dn: olcDatabase=config,cn=config
-objectClass: olcDatabaseConfig
-olcDatabase: config
+    # Wait for slapd to be ready
+    for i in $(seq 1 30); do
+        if ldapsearch -x -H ldap://127.0.0.1:3890/ -b "" -s base namingContexts &>/dev/null; then
+            break
+        fi
+        sleep 0.5
+    done
+
+    # Set the config admin password
+    ldapmodify -Y EXTERNAL -H "$ldapi_url" <<EOF 2>/dev/null || true
+dn: olcDatabase={0}config,cn=config
+changetype: modify
+replace: olcRootDN
 olcRootDN: cn=admin,cn=config
+-
+replace: olcRootPW
 olcRootPW: ${hashed_config_pw}
+EOF
 
+    # Load additional schemas
+    ldapadd -Y EXTERNAL -H "$ldapi_url" -f /etc/ldap/schema/cosine.ldif 2>/dev/null || true
+    ldapadd -Y EXTERNAL -H "$ldapi_url" -f /etc/ldap/schema/inetorgperson.ldif 2>/dev/null || true
+    ldapadd -Y EXTERNAL -H "$ldapi_url" -f /etc/ldap/schema/nis.ldif 2>/dev/null || true
+
+    # Add MDB database for the user's root DN
+    ldapadd -Y EXTERNAL -H "$ldapi_url" <<EOF 2>/dev/null
 dn: olcDatabase=mdb,cn=config
 objectClass: olcDatabaseConfig
 objectClass: olcMdbConfig
@@ -60,8 +75,11 @@ olcDbIndex: cn,uid eq
 olcDbIndex: member,memberUid eq
 EOF
 
-    slapadd -n 0 -F "$CONFIGDIR" -l /tmp/slapd.ldif
+    # Stop temporary slapd
+    kill "$pid"
+    wait "$pid" 2>/dev/null || true
 
+    # Add base entry using slapadd
     cat > /tmp/base.ldif <<EOF
 dn: ${root_dn}
 objectClass: top
@@ -72,8 +90,7 @@ dc: ${dc}
 EOF
 
     slapadd -F "$CONFIGDIR" -l /tmp/base.ldif
-
-    rm -f /tmp/slapd.ldif /tmp/base.ldif
+    rm -f /tmp/base.ldif
 
     for f in /docker-entrypoint-initdb.d/*.ldif; do
         [ -f "$f" ] || continue
@@ -89,6 +106,7 @@ EOF
 }
 
 if [ "$1" = "slapd" ]; then
+    mkdir -p /var/run/slapd "$DATADIR" "$CONFIGDIR"
     init_ldap
     shift
     exec slapd -F "$CONFIGDIR" -h "ldap://0.0.0.0:${LDAP_PORT:-389}/" -d 0 $LDAP_EXTRA_ARGS "$@"
