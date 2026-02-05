@@ -3,6 +3,22 @@ set -e
 
 setup_sentinel_conf() {
     local conf="/opt/redis/etc/sentinel.conf"
+    local runtime_conf="/data/sentinel.conf"
+
+    # If config exists and is read-only (ConfigMap mount), use it directly
+    if [ -f "$conf" ] && [ ! -w "$conf" ]; then
+        echo "$conf"
+        return
+    fi
+
+    # If config exists and is writable, use it
+    if [ -f "$conf" ] && [ -w "$conf" ]; then
+        echo "$conf"
+        return
+    fi
+
+    # Generate config in /data (always writable)
+    conf="$runtime_conf"
 
     cat > "$conf" <<EOF
 port ${REDIS_SENTINEL_PORT:-26379}
