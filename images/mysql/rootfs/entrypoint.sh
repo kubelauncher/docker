@@ -4,6 +4,8 @@ set -e
 DATADIR="${MYSQL_DATA_DIR:-/data/mysql/data}"
 
 init_database() {
+    mkdir -p /run/mysqld
+
     if [ -d "$DATADIR/mysql" ]; then
         echo "MySQL data directory already initialized, skipping."
         return

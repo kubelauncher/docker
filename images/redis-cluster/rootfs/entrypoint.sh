@@ -10,6 +10,7 @@ setup_cluster_conf() {
 bind 0.0.0.0
 port ${port}
 protected-mode no
+dir /data
 cluster-enabled yes
 cluster-config-file /data/nodes.conf
 cluster-node-timeout 5000

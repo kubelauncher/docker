@@ -24,6 +24,7 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
                 /data/openldap/config \
                 /opt/openldap \
                 /docker-entrypoint-initdb.d \
+    && cp -r /etc/ldap/slapd.d /opt/openldap/default-config \
     && chown -R openldap:openldap /data/openldap \
                                     /opt/openldap \
                                     /docker-entrypoint-initdb.d \

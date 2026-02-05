@@ -23,7 +23,6 @@ setup_config() {
         "$CASSANDRA_YAML"
 
     export MAX_HEAP_SIZE="${CASSANDRA_MAX_HEAP_SIZE:-512M}"
-    export HEAP_NEWSIZE="${CASSANDRA_HEAP_NEWSIZE:-128M}"
     export CASSANDRA_LOG_DIR="/data/cassandra/logs"
 
     mkdir -p /data/cassandra/data \
