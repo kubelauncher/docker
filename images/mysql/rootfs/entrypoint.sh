@@ -30,34 +30,37 @@ init_database() {
         sleep 1
     done
 
-    mysql --socket=/run/mysqld/mysqld.sock -u root -e "FLUSH PRIVILEGES;"
+    # Build all SQL statements to execute in a single session.
+    # FLUSH PRIVILEGES is required before ALTER USER when --skip-grant-tables is active.
+    # After FLUSH PRIVILEGES, the current session keeps full access but new
+    # connections enforce auth, so everything must run in one batch.
+    local sql="FLUSH PRIVILEGES;"
 
     if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
-        mysql --socket=/run/mysqld/mysqld.sock -u root <<EOSQL
+        sql="${sql}
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
 CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
-EOSQL
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;"
     fi
 
     if [ -n "$MYSQL_USER" ] && [ -n "$MYSQL_PASSWORD" ]; then
-        mysql --socket=/run/mysqld/mysqld.sock -u root <<EOSQL
-CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
-EOSQL
+        sql="${sql}
+CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';"
     fi
 
     if [ -n "$MYSQL_DATABASE" ]; then
-        mysql --socket=/run/mysqld/mysqld.sock -u root <<EOSQL
-CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
-EOSQL
+        sql="${sql}
+CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;"
         if [ -n "$MYSQL_USER" ]; then
-            mysql --socket=/run/mysqld/mysqld.sock -u root <<EOSQL
-GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';
-EOSQL
+            sql="${sql}
+GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';"
         fi
     fi
 
-    mysql --socket=/run/mysqld/mysqld.sock -u root -e "FLUSH PRIVILEGES;"
+    sql="${sql}
+FLUSH PRIVILEGES;"
+
+    mysql --socket=/run/mysqld/mysqld.sock -u root <<< "$sql"
 
     run_init_scripts
 
@@ -77,12 +80,20 @@ run_init_scripts() {
                 *.sql)
                     echo "Running SQL file: $f"
                     local db="${MYSQL_DATABASE:-mysql}"
-                    mysql --socket=/run/mysqld/mysqld.sock -u root -D "$db" < "$f"
+                    if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
+                        mysql --socket=/run/mysqld/mysqld.sock -u root -p"${MYSQL_ROOT_PASSWORD}" -D "$db" < "$f"
+                    else
+                        mysql --socket=/run/mysqld/mysqld.sock -u root -D "$db" < "$f"
+                    fi
                     ;;
                 *.sql.gz)
                     echo "Running compressed SQL file: $f"
                     local db="${MYSQL_DATABASE:-mysql}"
-                    gunzip -c "$f" | mysql --socket=/run/mysqld/mysqld.sock -u root -D "$db"
+                    if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
+                        gunzip -c "$f" | mysql --socket=/run/mysqld/mysqld.sock -u root -p"${MYSQL_ROOT_PASSWORD}" -D "$db"
+                    else
+                        gunzip -c "$f" | mysql --socket=/run/mysqld/mysqld.sock -u root -D "$db"
+                    fi
                     ;;
             esac
         done

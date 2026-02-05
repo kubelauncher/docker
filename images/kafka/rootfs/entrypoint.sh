@@ -3,39 +3,65 @@ set -e
 
 KAFKA_HOME="/opt/kafka"
 
+# Read all config from env vars FIRST, then unset all KAFKA_* to prevent
+# Kafka 3.9+ KIP-719 from interpreting them as config property overrides.
+read_config() {
+    CFG_LOG_DIRS="${KAFKA_LOG_DIRS:-${KAFKA_CFG_LOG_DIRS:-/data/kafka/data}}"
+    CFG_CLUSTER_ID="${KAFKA_CLUSTER_ID:-${KAFKA_KRAFT_CLUSTER_ID}}"
+    CFG_NODE_ID="${KAFKA_BROKER_ID:-${KAFKA_CFG_NODE_ID:-1}}"
+    CFG_PORT="${KAFKA_PORT:-9092}"
+    CFG_CTRL_PORT="${KAFKA_CONTROLLER_PORT:-9093}"
+    CFG_HEAP_OPTS="${KAFKA_HEAP_OPTS:--Xmx512m -Xms512m}"
+
+    if [ -n "${KAFKA_ADVERTISED_LISTENERS:-${KAFKA_CFG_ADVERTISED_LISTENERS}}" ]; then
+        CFG_ADVERTISED="${KAFKA_ADVERTISED_LISTENERS:-${KAFKA_CFG_ADVERTISED_LISTENERS}}"
+    else
+        local host="${HOSTNAME:-localhost}"
+        CFG_ADVERTISED="PLAINTEXT://${host}:${CFG_PORT}"
+    fi
+
+    CFG_LISTENERS="${KAFKA_LISTENERS:-${KAFKA_CFG_LISTENERS:-PLAINTEXT://0.0.0.0:${CFG_PORT},CONTROLLER://0.0.0.0:${CFG_CTRL_PORT}}}"
+    CFG_QUORUM_VOTERS="${KAFKA_CFG_CONTROLLER_QUORUM_VOTERS:-${CFG_NODE_ID}@localhost:${CFG_CTRL_PORT}}"
+    CFG_PROCESS_ROLES="${KAFKA_CFG_PROCESS_ROLES:-broker,controller}"
+    CFG_PROTOCOL_MAP="${KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP:-CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT}"
+    CFG_CTRL_LISTENER="${KAFKA_CFG_CONTROLLER_LISTENER_NAMES:-CONTROLLER}"
+}
+
+unset_kafka_env() {
+    # Unset ALL KAFKA_* env vars. Keep only JVM-related vars.
+    for var in $(env | grep '^KAFKA_' | cut -d= -f1); do
+        case "$var" in
+            KAFKA_HEAP_OPTS|KAFKA_OPTS|KAFKA_GC_LOG_OPTS|KAFKA_JMX_OPTS|KAFKA_LOG4J_OPTS|KAFKA_JVM_PERFORMANCE_OPTS|KAFKA_DEBUG) ;;
+            *) unset "$var" ;;
+        esac
+    done
+    # Re-export heap opts from saved value
+    export KAFKA_HEAP_OPTS="$CFG_HEAP_OPTS"
+}
+
 setup_kraft() {
-    local log_dirs="${KAFKA_LOG_DIRS:-/data/kafka/data}"
-    local cluster_id="${KAFKA_CLUSTER_ID}"
-    if [ -z "$cluster_id" ]; then
+    read_config
+    unset_kafka_env
+
+    if [ -z "$CFG_CLUSTER_ID" ]; then
         if [ ! -f "/data/kafka/.cluster_id" ]; then
-            cluster_id=$("$KAFKA_HOME/bin/kafka-storage.sh" random-uuid)
-            echo "$cluster_id" > /data/kafka/.cluster_id
+            CFG_CLUSTER_ID=$("$KAFKA_HOME/bin/kafka-storage.sh" random-uuid)
+            echo "$CFG_CLUSTER_ID" > /data/kafka/.cluster_id
         else
-            cluster_id=$(cat /data/kafka/.cluster_id)
+            CFG_CLUSTER_ID=$(cat /data/kafka/.cluster_id)
         fi
     fi
 
-    local node_id="${KAFKA_BROKER_ID:-1}"
-    local port="${KAFKA_PORT:-9092}"
-    local ctrl_port="${KAFKA_CONTROLLER_PORT:-9093}"
-    local advertised
-    if [ -n "$KAFKA_ADVERTISED_LISTENERS" ]; then
-        advertised="$KAFKA_ADVERTISED_LISTENERS"
-    else
-        local host="${HOSTNAME:-localhost}"
-        advertised="PLAINTEXT://${host}:${port}"
-    fi
-
     cat > "$KAFKA_HOME/config/server.properties" <<EOF
-process.roles=broker,controller
-node.id=${node_id}
-controller.quorum.voters=${node_id}@localhost:${ctrl_port}
-listeners=PLAINTEXT://0.0.0.0:${port},CONTROLLER://0.0.0.0:${ctrl_port}
-advertised.listeners=${advertised}
-controller.listener.names=CONTROLLER
+process.roles=${CFG_PROCESS_ROLES}
+node.id=${CFG_NODE_ID}
+controller.quorum.voters=${CFG_QUORUM_VOTERS}
+listeners=${CFG_LISTENERS}
+advertised.listeners=${CFG_ADVERTISED}
+controller.listener.names=${CFG_CTRL_LISTENER}
 inter.broker.listener.name=PLAINTEXT
-listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-log.dirs=${log_dirs}
+listener.security.protocol.map=${CFG_PROTOCOL_MAP}
+log.dirs=${CFG_LOG_DIRS}
 num.partitions=1
 offsets.topic.replication.factor=1
 transaction.state.log.replication.factor=1
@@ -44,18 +70,9 @@ log.retention.hours=168
 log.segment.bytes=1073741824
 EOF
 
-    # Unset ALL KAFKA_* env vars to prevent Kafka 3.9+ from reading them
-    # as config property overrides. Keep only JVM-related vars.
-    for var in $(env | grep ^KAFKA_ | cut -d= -f1); do
-        case "$var" in
-            KAFKA_HEAP_OPTS|KAFKA_OPTS|KAFKA_GC_LOG_OPTS|KAFKA_JMX_OPTS|KAFKA_LOG4J_OPTS|KAFKA_JVM_PERFORMANCE_OPTS|KAFKA_DEBUG) ;;
-            *) unset "$var" ;;
-        esac
-    done
-
-    if [ ! -f "${log_dirs}/meta.properties" ]; then
+    if [ ! -f "${CFG_LOG_DIRS}/meta.properties" ]; then
         "$KAFKA_HOME/bin/kafka-storage.sh" format \
-            -t "$cluster_id" \
+            -t "$CFG_CLUSTER_ID" \
             -c "$KAFKA_HOME/config/server.properties" \
             --ignore-formatted
     fi

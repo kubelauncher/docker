@@ -32,14 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY rootfs/entrypoint.sh /opt/kafka/entrypoint.sh
 RUN chmod +x /opt/kafka/entrypoint.sh
 
-ENV KAFKA_BROKER_ID="1" \
-    KAFKA_PORT="9092" \
-    KAFKA_CONTROLLER_PORT="9093" \
-    KAFKA_LOG_DIRS="/data/kafka/data" \
-    KAFKA_HEAP_OPTS="-Xmx512m -Xms512m" \
-    KAFKA_CLUSTER_ID="" \
-    KAFKA_KRAFT_MODE="true" \
-    KAFKA_EXTRA_FLAGS="" \
+ENV KAFKA_HEAP_OPTS="-Xmx512m -Xms512m" \
     PATH="/opt/kafka/bin:${PATH}"
 
 VOLUME ["/data/kafka"]

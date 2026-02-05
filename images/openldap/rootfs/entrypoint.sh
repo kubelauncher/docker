@@ -61,7 +61,7 @@ EOF
     ldapadd -Y EXTERNAL -H "$ldapi_url" -f /etc/ldap/schema/nis.ldif 2>/dev/null || true
 
     # Add MDB database for the user's root DN
-    ldapadd -Y EXTERNAL -H "$ldapi_url" <<EOF 2>/dev/null
+    ldapadd -Y EXTERNAL -H "$ldapi_url" <<EOF
 dn: olcDatabase=mdb,cn=config
 objectClass: olcDatabaseConfig
 objectClass: olcMdbConfig
@@ -75,10 +75,15 @@ olcDbIndex: cn,uid eq
 olcDbIndex: member,memberUid eq
 EOF
 
-    # Add base entry via LDAP protocol (avoids slapadd issues)
-    ldapadd -x -H ldap://127.0.0.1:3890/ \
-        -D "cn=${LDAP_ADMIN_USERNAME:-admin},${root_dn}" \
-        -w "$admin_password" <<EOF
+    # Wait for MDB database to be ready
+    sleep 1
+
+    # Add base entry via LDAP protocol
+    local retry
+    for retry in $(seq 1 5); do
+        if ldapadd -x -H ldap://127.0.0.1:3890/ \
+            -D "cn=${LDAP_ADMIN_USERNAME:-admin},${root_dn}" \
+            -w "$admin_password" <<EOF; then
 dn: ${root_dn}
 objectClass: top
 objectClass: dcObject
@@ -86,6 +91,11 @@ objectClass: organization
 o: ${organisation}
 dc: ${dc}
 EOF
+            break
+        fi
+        echo "Base entry add attempt $retry failed, retrying..."
+        sleep 1
+    done
 
     for f in /docker-entrypoint-initdb.d/*.ldif; do
         [ -f "$f" ] || continue

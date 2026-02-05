@@ -44,7 +44,7 @@ jobs:
             test: |
               docker run -d --name test -p 6379:6379 -p 16379:16379 ${IMAGE}
               sleep 5
-              docker exec test redis-cli CLUSTER INFO | tr -d '\r' | grep -q cluster_enabled:1
+              docker exec test sh -c 'redis-cli CLUSTER INFO | grep cluster_enabled:1'
 
           - image: postgresql
             test: |
@@ -104,7 +104,7 @@ jobs:
               docker run -d --name test -p 9042:9042 \
                 -e CASSANDRA_MAX_HEAP_SIZE=512M \
                 ${IMAGE}
-              sleep 60
+              sleep 120
               docker exec test cqlsh -e "DESCRIBE CLUSTER"
 
           - image: memcached
@@ -124,12 +124,12 @@ jobs:
 
           - image: keycloak
             test: |
-              docker run -d --name test -p 8080:8080 \
+              docker run -d --name test -p 8080:8080 -p 9000:9000 \
                 -e KEYCLOAK_ADMIN=admin \
                 -e KEYCLOAK_ADMIN_PASSWORD=admin \
                 ${IMAGE}
               sleep 45
-              curl -sf http://localhost:8080/health/ready | grep -q UP
+              curl -sf http://localhost:9000/health/ready | grep -q UP
 
           - image: kubectl
             test: |
