@@ -10,7 +10,8 @@ LABEL org.opencontainers.image.title="rabbitmq" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
+RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
+    && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
     && groupadd -r -g 1001 rabbitmq \
     && useradd -r -u 1001 -g rabbitmq -d /var/lib/rabbitmq -s /bin/bash rabbitmq \
     && apt-get update \
