@@ -10,7 +10,7 @@ LABEL org.opencontainers.image.title="cassandra" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         openjdk-17-jre-headless \
         ca-certificates \
         curl \
