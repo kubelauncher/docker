@@ -79,6 +79,14 @@
     },
     {
       "customType": "regex",
+      "fileMatch": ["images/mysql/Dockerfile$"],
+      "matchStrings": ["ARG MYSQL_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "mysql/mysql-server",
+      "datasourceTemplate": "docker",
+      "extractVersionTemplate": "^(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
       "fileMatch": ["images/mongodb/Dockerfile$"],
       "matchStrings": ["ARG MONGODB_VERSION=(?<currentValue>\\S+)"],
       "depNameTemplate": "mongodb/mongo",
@@ -142,6 +150,11 @@
       "matchPackageNames": ["keycloak/keycloak"],
       "allowedVersions": "!/alpha|beta|rc|nightly/",
       "groupName": "keycloak",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["mysql/mysql-server"],
+      "groupName": "mysql",
       "automerge": false
     },
     {
