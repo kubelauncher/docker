@@ -11,6 +11,8 @@ LABEL org.opencontainers.image.title="openldap" \
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
+    && groupadd -r -g 1001 openldap \
+    && useradd -r -u 1001 -g openldap -d /data/openldap -s /bin/bash openldap \
     && apt-get update && apt-get install -y --no-install-recommends \
         slapd \
         ldap-utils \
@@ -21,8 +23,6 @@ RUN printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/p
                 /data/openldap/config \
                 /opt/openldap \
                 /docker-entrypoint-initdb.d \
-    && groupadd -r -g 1001 openldap \
-    && useradd -r -u 1001 -g openldap -d /data/openldap -s /bin/bash openldap \
     && chown -R openldap:openldap /data/openldap \
                                     /opt/openldap \
                                     /docker-entrypoint-initdb.d \

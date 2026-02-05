@@ -12,6 +12,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
     && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
+    && groupadd -r -g 1001 mongodb \
+    && useradd -r -u 1001 -g mongodb -d /data/mongodb -s /bin/bash mongodb \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg \
@@ -28,8 +30,6 @@ RUN printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/p
                 /data/mongodb/logs \
                 /docker-entrypoint-initdb.d \
                 /opt/mongodb \
-    && groupadd -r -g 1001 mongodb \
-    && useradd -r -u 1001 -g mongodb -d /data/mongodb -s /bin/bash mongodb \
     && chown -R mongodb:mongodb /data/mongodb \
                                  /docker-entrypoint-initdb.d \
                                  /opt/mongodb \
