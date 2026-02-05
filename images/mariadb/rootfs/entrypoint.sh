@@ -4,9 +4,19 @@ set -e
 DATADIR="${MARIADB_DATA_DIR:-/data/mariadb/data}"
 
 init_database() {
+    # Create runtime directories (PVC mount may overwrite them)
+    mkdir -p /run/mysqld
+    # Create parent dir only - MariaDB creates the data dir itself
+    mkdir -p "$(dirname "$DATADIR")"
+
     if [ -d "$DATADIR/mysql" ]; then
         echo "MariaDB data directory already initialized, skipping."
         return
+    fi
+
+    # Remove empty data dir if it exists (MariaDB needs it to not exist or be empty)
+    if [ -d "$DATADIR" ] && [ -z "$(ls -A "$DATADIR")" ]; then
+        rmdir "$DATADIR"
     fi
 
     echo "Initializing MariaDB database..."
