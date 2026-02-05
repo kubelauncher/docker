@@ -1,0 +1,71 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "labels": ["dependencies"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["images/redis/Dockerfile$"],
+      "matchStrings": ["ARG REDIS_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "redis/redis",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["images/kubectl/Dockerfile$"],
+      "matchStrings": ["ARG KUBECTL_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "kubernetes/kubernetes",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["images/kubectl/Dockerfile$"],
+      "matchStrings": ["ARG YQ_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "mikefarah/yq",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["images/rabbitmq/Dockerfile$"],
+      "matchStrings": ["ARG RABBITMQ_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "rabbitmq/rabbitmq-server",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": ["alpine"],
+      "matchManagers": ["dockerfile"],
+      "groupName": "alpine base image",
+      "automerge": true
+    },
+    {
+      "matchPackageNames": ["redis/redis"],
+      "groupName": "redis",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["kubernetes/kubernetes"],
+      "allowedVersions": "!/alpha|beta|rc/",
+      "groupName": "kubectl",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["mikefarah/yq"],
+      "groupName": "yq",
+      "automerge": true
+    },
+    {
+      "matchPackageNames": ["rabbitmq/rabbitmq-server"],
+      "allowedVersions": "!/alpha|beta|rc/",
+      "groupName": "rabbitmq",
+      "automerge": false
+    }
+  ]
+}
