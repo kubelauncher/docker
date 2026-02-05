@@ -39,10 +39,15 @@ init_database() {
 
     [ -n "$pwfile" ] && rm -f "$pwfile"
 
-    cat >> "$PGDATA/pg_hba.conf" <<EOF
+    if [ -n "$POSTGRESQL_PG_HBA" ]; then
+        echo "Using custom pg_hba.conf from POSTGRESQL_PG_HBA..."
+        echo "$POSTGRESQL_PG_HBA" > "$PGDATA/pg_hba.conf"
+    else
+        cat >> "$PGDATA/pg_hba.conf" <<EOF
 host all all 0.0.0.0/0 md5
 host all all ::/0 md5
 EOF
+    fi
 
     cat >> "$PGDATA/postgresql.conf" <<EOF
 listen_addresses = '*'
