@@ -6,141 +6,81 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      images:
+        description: "Comma-separated list of images to test (empty = all)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
   packages: read
+  actions: read
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
-  smoke-test:
+  detect-images:
+    runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has_images: ${{ steps.set-matrix.outputs.has_images }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: set-matrix
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # For workflow_dispatch with specific images
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.images }}" ]; then
+            IMAGES=$(echo "${{ inputs.images }}" | tr ',' '\n' | jq -R . | jq -s -c .)
+            echo "matrix={\"image\":${IMAGES}}" >> "$GITHUB_OUTPUT"
+            echo "has_images=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # For workflow_dispatch without images (test all)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            IMAGES=$(ls -d images/*/ | xargs -I{} basename {} | jq -R . | jq -s -c .)
+            echo "matrix={\"image\":${IMAGES}}" >> "$GITHUB_OUTPUT"
+            echo "has_images=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # For workflow_run: get images from build jobs
+          RUN_ID="${{ github.event.workflow_run.id }}"
+          JOBS=$(gh api "repos/${{ github.repository }}/actions/runs/${RUN_ID}/jobs" --jq '.jobs[] | select(.conclusion == "success") | .name')
+
+          IMAGES=()
+          while IFS= read -r job; do
+            # Jobs are named like "build (redis)"
+            if [[ "$job" =~ ^build\ \((.+)\)$ ]]; then
+              IMAGES+=("\"${BASH_REMATCH[1]}\"")
+            fi
+          done <<< "$JOBS"
+
+          if [ ${#IMAGES[@]} -eq 0 ]; then
+            echo "has_images=false" >> "$GITHUB_OUTPUT"
+            echo "matrix={\"image\":[]}" >> "$GITHUB_OUTPUT"
+          else
+            IMG_JSON=$(IFS=,; echo "[${IMAGES[*]}]")
+            echo "matrix={\"image\":${IMG_JSON}}" >> "$GITHUB_OUTPUT"
+            echo "has_images=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  smoke-test:
+    needs: detect-images
+    if: needs.detect-images.outputs.has_images == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - image: redis
-            test: |
-              docker run -d --name test -p 6379:6379 ${IMAGE}
-              sleep 3
-              docker exec test redis-cli PING | grep -q PONG
-
-          - image: redis-sentinel
-            test: |
-              docker run -d --name redis-master -p 6379:6379 ${REGISTRY}/${OWNER}/redis:latest
-              sleep 3
-              docker run -d --name test -p 26379:26379 \
-                -e REDIS_MASTER_HOST=redis-master \
-                -e REDIS_SENTINEL_QUORUM=1 \
-                --link redis-master \
-                ${IMAGE}
-              sleep 5
-              docker exec test redis-cli -p 26379 SENTINEL masters | grep -q mymaster
-
-          - image: redis-cluster
-            test: |
-              docker run -d --name test -p 6379:6379 -p 16379:16379 ${IMAGE}
-              sleep 5
-              docker exec test redis-cli PING
-              docker exec test redis-cli CLUSTER MYID
-
-          - image: postgresql
-            test: |
-              docker run -d --name test -p 5432:5432 \
-                -e POSTGRESQL_POSTGRES_PASSWORD=testpass \
-                -e POSTGRESQL_DATABASE=testdb \
-                ${IMAGE}
-              sleep 10
-              docker exec test pg_isready -U postgres
-
-          - image: mariadb
-            test: |
-              docker run -d --name test -p 3306:3306 \
-                -e MARIADB_ROOT_PASSWORD=testpass \
-                -e MARIADB_DATABASE=testdb \
-                ${IMAGE}
-              sleep 15
-              docker exec test mariadb -u root -ptestpass -e "SELECT 1"
-
-          - image: mysql
-            test: |
-              docker run -d --name test -p 3307:3306 \
-                -e MYSQL_ROOT_PASSWORD=testpass \
-                -e MYSQL_DATABASE=testdb \
-                ${IMAGE}
-              sleep 15
-              docker exec test mysql -u root -ptestpass -e "SELECT 1"
-
-          - image: mongodb
-            test: |
-              docker run -d --name test -p 27017:27017 \
-                -e MONGODB_ROOT_PASSWORD=testpass \
-                ${IMAGE}
-              sleep 10
-              docker exec test mongosh --quiet -u root -p testpass --authenticationDatabase admin --eval "db.adminCommand('ping')"
-
-          - image: rabbitmq
-            test: |
-              docker run -d --name test -p 5672:5672 -p 15672:15672 ${IMAGE}
-              sleep 15
-              docker exec test rabbitmq-diagnostics -q check_running
-
-          - image: kafka
-            test: |
-              docker run -d --name test -p 9092:9092 ${IMAGE}
-              sleep 15
-              docker exec test kafka-topics.sh --bootstrap-server localhost:9092 --list
-
-          - image: zookeeper
-            test: |
-              docker run -d --name test -p 2181:2181 ${IMAGE}
-              sleep 10
-              docker exec test bash -c 'echo ruok | nc localhost 2181' | grep -q imok
-
-          - image: cassandra
-            test: |
-              docker run -d --name test -p 9042:9042 \
-                -e CASSANDRA_MAX_HEAP_SIZE=512M \
-                ${IMAGE}
-              for i in $(seq 1 60); do
-                docker exec test cqlsh -e "DESCRIBE CLUSTER" && break
-                echo "Waiting for Cassandra to start... ($i/60)"
-                sleep 5
-              done
-
-          - image: memcached
-            test: |
-              docker run -d --name test -p 11211:11211 ${IMAGE}
-              sleep 3
-              echo "stats" | nc -w 2 localhost 11211 | grep -q pid
-
-          - image: openldap
-            test: |
-              docker run -d --name test -p 389:389 \
-                -e LDAP_ADMIN_PASSWORD=admin \
-                -e LDAP_ROOT=dc=test,dc=org \
-                ${IMAGE}
-              sleep 5
-              docker exec test ldapsearch -x -H ldap://localhost -b dc=test,dc=org -D cn=admin,dc=test,dc=org -w admin
-
-          - image: keycloak
-            test: |
-              docker run -d --name test -p 8080:8080 -p 9000:9000 \
-                -e KEYCLOAK_ADMIN=admin \
-                -e KEYCLOAK_ADMIN_PASSWORD=admin \
-                ${IMAGE}
-              sleep 45
-              curl -sf http://localhost:9000/health/ready | grep -q UP
-
-          - image: kubectl
-            test: |
-              docker run --name test ${IMAGE} version --client
-              docker logs test | grep -q "Client Version"
-
+      matrix: ${{ fromJson(needs.detect-images.outputs.matrix) }}
     steps:
+      - uses: actions/checkout@v4
+
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
@@ -157,7 +97,117 @@ jobs:
           set -e
           echo "Testing ${IMAGE}..."
           docker pull "${IMAGE}"
-          ${{ matrix.test }}
+
+          case "${{ matrix.image }}" in
+            redis)
+              docker run -d --name test -p 6379:6379 ${IMAGE}
+              sleep 3
+              docker exec test redis-cli PING | grep -q PONG
+              ;;
+            redis-sentinel)
+              docker run -d --name redis-master -p 6379:6379 ${REGISTRY}/${OWNER}/redis:latest
+              sleep 3
+              docker run -d --name test -p 26379:26379 \
+                -e REDIS_MASTER_HOST=redis-master \
+                -e REDIS_SENTINEL_QUORUM=1 \
+                --link redis-master \
+                ${IMAGE}
+              sleep 5
+              docker exec test redis-cli -p 26379 SENTINEL masters | grep -q mymaster
+              ;;
+            redis-cluster)
+              docker run -d --name test -p 6379:6379 -p 16379:16379 ${IMAGE}
+              sleep 5
+              docker exec test redis-cli PING
+              docker exec test redis-cli CLUSTER MYID
+              ;;
+            postgresql)
+              docker run -d --name test -p 5432:5432 \
+                -e POSTGRESQL_POSTGRES_PASSWORD=testpass \
+                -e POSTGRESQL_DATABASE=testdb \
+                ${IMAGE}
+              sleep 10
+              docker exec test pg_isready -U postgres
+              ;;
+            mariadb)
+              docker run -d --name test -p 3306:3306 \
+                -e MARIADB_ROOT_PASSWORD=testpass \
+                -e MARIADB_DATABASE=testdb \
+                ${IMAGE}
+              sleep 15
+              docker exec test mariadb -u root -ptestpass -e "SELECT 1"
+              ;;
+            mysql)
+              docker run -d --name test -p 3307:3306 \
+                -e MYSQL_ROOT_PASSWORD=testpass \
+                -e MYSQL_DATABASE=testdb \
+                ${IMAGE}
+              sleep 15
+              docker exec test mysql -u root -ptestpass -e "SELECT 1"
+              ;;
+            mongodb)
+              docker run -d --name test -p 27017:27017 \
+                -e MONGODB_ROOT_PASSWORD=testpass \
+                ${IMAGE}
+              sleep 10
+              docker exec test mongosh --quiet -u root -p testpass --authenticationDatabase admin --eval "db.adminCommand('ping')"
+              ;;
+            rabbitmq)
+              docker run -d --name test -p 5672:5672 -p 15672:15672 ${IMAGE}
+              sleep 15
+              docker exec test rabbitmq-diagnostics -q check_running
+              ;;
+            kafka)
+              docker run -d --name test -p 9092:9092 ${IMAGE}
+              sleep 15
+              docker exec test kafka-topics.sh --bootstrap-server localhost:9092 --list
+              ;;
+            zookeeper)
+              docker run -d --name test -p 2181:2181 ${IMAGE}
+              sleep 10
+              docker exec test bash -c 'echo ruok | nc localhost 2181' | grep -q imok
+              ;;
+            cassandra)
+              docker run -d --name test -p 9042:9042 \
+                -e CASSANDRA_MAX_HEAP_SIZE=512M \
+                ${IMAGE}
+              for i in $(seq 1 60); do
+                docker exec test cqlsh -e "DESCRIBE CLUSTER" && break
+                echo "Waiting for Cassandra to start... ($i/60)"
+                sleep 5
+              done
+              ;;
+            memcached)
+              docker run -d --name test -p 11211:11211 ${IMAGE}
+              sleep 3
+              echo "stats" | nc -w 2 localhost 11211 | grep -q pid
+              ;;
+            openldap)
+              docker run -d --name test -p 389:389 \
+                -e LDAP_ADMIN_PASSWORD=admin \
+                -e LDAP_ROOT=dc=test,dc=org \
+                ${IMAGE}
+              sleep 5
+              docker exec test ldapsearch -x -H ldap://localhost -b dc=test,dc=org -D cn=admin,dc=test,dc=org -w admin
+              ;;
+            keycloak)
+              docker run -d --name test -p 8080:8080 -p 9000:9000 \
+                -e KEYCLOAK_ADMIN=admin \
+                -e KEYCLOAK_ADMIN_PASSWORD=admin \
+                ${IMAGE}
+              sleep 45
+              curl -sf http://localhost:9000/health/ready | grep -q UP
+              ;;
+            kubectl)
+              docker run --name test ${IMAGE} version --client
+              docker logs test | grep -q "Client Version"
+              ;;
+            *)
+              echo "Unknown image: ${{ matrix.image }}"
+              exit 1
+              ;;
+          esac
+
           echo "Smoke test passed for ${{ matrix.image }}"
 
       - name: Collect logs on failure
