@@ -3,14 +3,8 @@ set -e
 
 KAFKA_HOME="/opt/kafka"
 LOG_DIRS="${KAFKA_LOG_DIRS:-/data/kafka/data}"
-CONFIG="${KAFKA_HOME}/config/kraft/server.properties"
 
 setup_kraft() {
-    if [ ! -f "$CONFIG" ]; then
-        cp "$KAFKA_HOME/config/kraft/server.properties" "$CONFIG" 2>/dev/null || \
-        cp "$KAFKA_HOME/config/server.properties" "$CONFIG" 2>/dev/null || true
-    fi
-
     local cluster_id="${KAFKA_CLUSTER_ID}"
     if [ -z "$cluster_id" ]; then
         if [ ! -f "/data/kafka/.cluster_id" ]; then
@@ -21,12 +15,23 @@ setup_kraft() {
         fi
     fi
 
+    local node_id="${KAFKA_BROKER_ID:-1}"
+    local port="${KAFKA_PORT:-9092}"
+    local ctrl_port="${KAFKA_CONTROLLER_PORT:-9093}"
+    local advertised
+    if [ -n "$KAFKA_ADVERTISED_LISTENERS" ]; then
+        advertised="$KAFKA_ADVERTISED_LISTENERS"
+    else
+        local host="${HOSTNAME:-localhost}"
+        advertised="PLAINTEXT://${host}:${port}"
+    fi
+
     cat > "$KAFKA_HOME/config/server.properties" <<EOF
 process.roles=broker,controller
-node.id=${KAFKA_BROKER_ID:-1}
-controller.quorum.voters=${KAFKA_BROKER_ID:-1}@localhost:${KAFKA_CONTROLLER_PORT:-9093}
-listeners=${KAFKA_LISTENERS:-PLAINTEXT://0.0.0.0:${KAFKA_PORT:-9092},CONTROLLER://0.0.0.0:${KAFKA_CONTROLLER_PORT:-9093}}
-advertised.listeners=${KAFKA_ADVERTISED_LISTENERS:-PLAINTEXT://localhost:${KAFKA_PORT:-9092}}
+node.id=${node_id}
+controller.quorum.voters=${node_id}@localhost:${ctrl_port}
+listeners=PLAINTEXT://0.0.0.0:${port},CONTROLLER://0.0.0.0:${ctrl_port}
+advertised.listeners=${advertised}
 controller.listener.names=CONTROLLER
 inter.broker.listener.name=PLAINTEXT
 listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT

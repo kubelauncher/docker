@@ -6,7 +6,8 @@ setup_sentinel_conf() {
 
     cat > "$conf" <<EOF
 port ${REDIS_SENTINEL_PORT:-26379}
-dir /data
+sentinel resolve-hostnames yes
+sentinel announce-hostnames yes
 
 sentinel monitor ${REDIS_MASTER_SET:-mymaster} ${REDIS_MASTER_HOST:-redis} ${REDIS_MASTER_PORT:-6379} ${REDIS_SENTINEL_QUORUM:-2}
 sentinel down-after-milliseconds ${REDIS_MASTER_SET:-mymaster} ${REDIS_SENTINEL_DOWN_AFTER:-30000}
@@ -28,7 +29,7 @@ EOF
 if [ "$1" = "redis-sentinel" ]; then
     conf=$(setup_sentinel_conf)
     shift
-    set -- redis-sentinel "$conf" "$@"
+    set -- redis-server "$conf" --sentinel "$@"
 fi
 
 exec "$@"

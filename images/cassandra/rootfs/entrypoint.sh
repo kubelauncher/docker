@@ -5,7 +5,7 @@ CASSANDRA_HOME="/opt/cassandra"
 CASSANDRA_YAML="${CASSANDRA_HOME}/conf/cassandra.yaml"
 
 setup_config() {
-    local listen_addr="${CASSANDRA_LISTEN_ADDRESS:-$(hostname -i 2>/dev/null || echo '127.0.0.1')}"
+    local listen_addr="${CASSANDRA_LISTEN_ADDRESS:-$(hostname -i 2>/dev/null || echo 'localhost')}"
     local broadcast_addr="${CASSANDRA_BROADCAST_ADDRESS:-$listen_addr}"
 
     sed -i \
@@ -25,6 +25,12 @@ setup_config() {
     export MAX_HEAP_SIZE="${CASSANDRA_MAX_HEAP_SIZE:-512M}"
     export HEAP_NEWSIZE="${CASSANDRA_HEAP_NEWSIZE:-128M}"
     export CASSANDRA_LOG_DIR="/data/cassandra/logs"
+
+    mkdir -p /data/cassandra/data \
+             /data/cassandra/commitlog \
+             /data/cassandra/saved_caches \
+             /data/cassandra/hints \
+             /data/cassandra/logs
 }
 
 if [ "$1" = "cassandra" ]; then

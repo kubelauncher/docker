@@ -10,7 +10,8 @@ LABEL org.opencontainers.image.title="mysql" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
+RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
+    && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
     && groupadd -r -g 1001 mysql \
     && useradd -r -u 1001 -g mysql -d /data/mysql -s /bin/bash mysql \
     && apt-get update \
@@ -28,7 +29,8 @@ RUN printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/p
                            /opt/mysql \
                            /run/mysqld \
     && chmod 700 /data/mysql/data \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /usr/sbin/policy-rc.d
 
 COPY rootfs/entrypoint.sh /opt/mysql/entrypoint.sh
 RUN chmod +x /opt/mysql/entrypoint.sh

@@ -32,7 +32,7 @@ RUN chmod +x /opt/keycloak/entrypoint.sh
 ENV KC_HTTP_PORT="8080" \
     KC_HTTPS_PORT="8443" \
     KC_HOSTNAME="" \
-    KC_DB="" \
+    KC_DB="dev-file" \
     KC_DB_URL="" \
     KC_DB_USERNAME="" \
     KC_DB_PASSWORD="" \

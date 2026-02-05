@@ -102,10 +102,10 @@ jobs:
           - image: cassandra
             test: |
               docker run -d --name test -p 9042:9042 \
-                -e CASSANDRA_MAX_HEAP_SIZE=256M \
-                -e CASSANDRA_HEAP_NEWSIZE=64M \
+                -e CASSANDRA_MAX_HEAP_SIZE=512M \
+                -e CASSANDRA_HEAP_NEWSIZE=128M \
                 ${IMAGE}
-              sleep 30
+              sleep 45
               docker exec test cqlsh -e "DESCRIBE CLUSTER"
 
           - image: memcached
