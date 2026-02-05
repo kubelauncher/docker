@@ -7,7 +7,7 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["images/redis/Dockerfile$"],
+      "fileMatch": ["images/redis/Dockerfile$", "images/redis-sentinel/Dockerfile$", "images/redis-cluster/Dockerfile$"],
       "matchStrings": ["ARG REDIS_VERSION=(?<currentValue>\\S+)"],
       "depNameTemplate": "redis/redis",
       "datasourceTemplate": "github-tags",
@@ -36,13 +36,61 @@
       "depNameTemplate": "rabbitmq/rabbitmq-server",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["images/memcached/Dockerfile$"],
+      "matchStrings": ["ARG MEMCACHED_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "memcached/memcached",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["images/kafka/Dockerfile$"],
+      "matchStrings": ["ARG KAFKA_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "apache/kafka",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["images/zookeeper/Dockerfile$"],
+      "matchStrings": ["ARG ZOOKEEPER_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "apache/zookeeper",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^release-(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["images/cassandra/Dockerfile$"],
+      "matchStrings": ["ARG CASSANDRA_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "apache/cassandra",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^cassandra-(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["images/keycloak/Dockerfile$"],
+      "matchStrings": ["ARG KEYCLOAK_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "keycloak/keycloak",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["images/mongodb/Dockerfile$"],
+      "matchStrings": ["ARG MONGODB_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "mongodb/mongo",
+      "datasourceTemplate": "docker",
+      "extractVersionTemplate": "^(?<version>.+)$"
     }
   ],
   "packageRules": [
     {
-      "matchPackageNames": ["alpine"],
+      "matchPackageNames": ["ubuntu"],
       "matchManagers": ["dockerfile"],
-      "groupName": "alpine base image",
+      "groupName": "ubuntu base image",
       "automerge": true
     },
     {
@@ -65,6 +113,40 @@
       "matchPackageNames": ["rabbitmq/rabbitmq-server"],
       "allowedVersions": "!/alpha|beta|rc/",
       "groupName": "rabbitmq",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["memcached/memcached"],
+      "groupName": "memcached",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["apache/kafka"],
+      "allowedVersions": "!/alpha|beta|rc/",
+      "groupName": "kafka",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["apache/zookeeper"],
+      "allowedVersions": "!/alpha|beta|rc/",
+      "groupName": "zookeeper",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["apache/cassandra"],
+      "allowedVersions": "!/alpha|beta|rc|tent/",
+      "groupName": "cassandra",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["keycloak/keycloak"],
+      "allowedVersions": "!/alpha|beta|rc|nightly/",
+      "groupName": "keycloak",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["mongodb/mongo"],
+      "groupName": "mongodb",
       "automerge": false
     }
   ]

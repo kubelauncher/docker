@@ -1,6 +1,6 @@
 # postgresql
 
-PostgreSQL relational database on Alpine Linux.
+PostgreSQL relational database on Ubuntu Linux.
 
 ## Quick start
 
@@ -30,6 +30,6 @@ Mount `.sh`, `.sql`, or `.sql.gz` files in `/docker-entrypoint-initdb.d/`.
 
 ## Build details
 
-- **Base**: Alpine 3.23
-- **Build**: Alpine packages (`postgresql17`)
+- **Base**: Ubuntu 24.04
+- **Build**: PGDG packages (`postgresql-17`)
 - **Data**: `/data/postgresql`

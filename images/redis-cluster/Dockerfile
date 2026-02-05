@@ -23,8 +23,8 @@ FROM ubuntu:24.04
 
 ARG REDIS_VERSION=8.4.0
 
-LABEL org.opencontainers.image.title="redis" \
-      org.opencontainers.image.description="Redis in-memory data store" \
+LABEL org.opencontainers.image.title="redis-cluster" \
+      org.opencontainers.image.description="Redis Cluster node" \
       org.opencontainers.image.version="${REDIS_VERSION}" \
       org.opencontainers.image.source="https://github.com/kubelauncher/docker"
 
@@ -47,14 +47,19 @@ RUN chmod +x /opt/redis/entrypoint.sh \
     && ln -s /opt/redis/bin/* /usr/local/bin/
 
 ENV REDIS_PORT="6379" \
+    REDIS_CLUSTER_BUS_PORT="16379" \
     REDIS_PASSWORD="" \
+    REDIS_CLUSTER_ANNOUNCE_IP="" \
+    REDIS_CLUSTER_ANNOUNCE_PORT="" \
+    REDIS_CLUSTER_ANNOUNCE_BUS_PORT="" \
+    REDIS_MAXMEMORY="" \
+    REDIS_MAXMEMORY_POLICY="" \
     REDIS_EXTRA_FLAGS="" \
-    REDIS_DISABLE_COMMANDS="" \
     PATH="/opt/redis/bin:${PATH}"
 
 VOLUME ["/data"]
 WORKDIR /data
-EXPOSE 6379
+EXPOSE 6379 16379
 
 USER 1001
 ENTRYPOINT ["/opt/redis/entrypoint.sh"]

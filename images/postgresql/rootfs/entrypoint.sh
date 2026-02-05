@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PG_BIN_DIR="/usr/libexec/postgresql${POSTGRESQL_VERSION:-17}"
+PG_BIN_DIR="/usr/lib/postgresql/${POSTGRESQL_VERSION:-17}/bin"
 PGDATA="${POSTGRESQL_DATA_DIR:-/data/postgresql/data}"
 export PGDATA
 

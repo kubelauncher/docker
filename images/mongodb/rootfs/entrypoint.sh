@@ -1,0 +1,82 @@
+#!/bin/bash
+set -e
+
+DATADIR="${MONGODB_DATA_DIR:-/data/mongodb/data}"
+LOGDIR="${MONGODB_LOG_DIR:-/data/mongodb/logs}"
+
+init_database() {
+    if [ -f "$DATADIR/WiredTiger" ]; then
+        echo "MongoDB data directory already initialized, skipping."
+        return
+    fi
+
+    echo "Initializing MongoDB..."
+
+    mongod \
+        --dbpath "$DATADIR" \
+        --port "${MONGODB_PORT:-27017}" \
+        --bind_ip 127.0.0.1 \
+        --noauth \
+        --fork \
+        --logpath "$LOGDIR/mongod.log"
+
+    for i in $(seq 1 30); do
+        if mongosh --port "${MONGODB_PORT:-27017}" --eval "db.adminCommand('ping')" &>/dev/null; then
+            break
+        fi
+        sleep 1
+    done
+
+    if [ -n "$MONGODB_ROOT_PASSWORD" ]; then
+        mongosh --port "${MONGODB_PORT:-27017}" admin <<EOJS
+db.createUser({
+  user: "${MONGODB_ROOT_USERNAME:-root}",
+  pwd: "${MONGODB_ROOT_PASSWORD}",
+  roles: [{ role: "root", db: "admin" }]
+});
+EOJS
+    fi
+
+    if [ -n "$MONGODB_USERNAME" ] && [ -n "$MONGODB_PASSWORD" ] && [ -n "$MONGODB_DATABASE" ]; then
+        mongosh --port "${MONGODB_PORT:-27017}" "$MONGODB_DATABASE" <<EOJS
+db.createUser({
+  user: "${MONGODB_USERNAME}",
+  pwd: "${MONGODB_PASSWORD}",
+  roles: [{ role: "readWrite", db: "${MONGODB_DATABASE}" }]
+});
+EOJS
+    fi
+
+    for f in /docker-entrypoint-initdb.d/*; do
+        [ -f "$f" ] || continue
+        case "$f" in
+            *.sh)
+                echo "Running init script: $f"
+                . "$f"
+                ;;
+            *.js)
+                echo "Running JS file: $f"
+                mongosh --port "${MONGODB_PORT:-27017}" "${MONGODB_DATABASE:-admin}" "$f"
+                ;;
+        esac
+    done
+
+    mongod --dbpath "$DATADIR" --shutdown
+
+    echo "MongoDB initialization complete."
+}
+
+if [ "$1" = "mongod" ]; then
+    init_database
+    shift
+
+    ARGS="--dbpath $DATADIR --port ${MONGODB_PORT:-27017} --bind_ip_all"
+
+    if [ -n "$MONGODB_ROOT_PASSWORD" ]; then
+        ARGS="$ARGS --auth"
+    fi
+
+    exec mongod $ARGS $MONGODB_EXTRA_FLAGS "$@"
+fi
+
+exec "$@"

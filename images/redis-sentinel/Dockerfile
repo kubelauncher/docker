@@ -23,8 +23,8 @@ FROM ubuntu:24.04
 
 ARG REDIS_VERSION=8.4.0
 
-LABEL org.opencontainers.image.title="redis" \
-      org.opencontainers.image.description="Redis in-memory data store" \
+LABEL org.opencontainers.image.title="redis-sentinel" \
+      org.opencontainers.image.description="Redis Sentinel high-availability monitor" \
       org.opencontainers.image.version="${REDIS_VERSION}" \
       org.opencontainers.image.source="https://github.com/kubelauncher/docker"
 
@@ -46,16 +46,22 @@ COPY rootfs/entrypoint.sh /opt/redis/entrypoint.sh
 RUN chmod +x /opt/redis/entrypoint.sh \
     && ln -s /opt/redis/bin/* /usr/local/bin/
 
-ENV REDIS_PORT="6379" \
-    REDIS_PASSWORD="" \
-    REDIS_EXTRA_FLAGS="" \
-    REDIS_DISABLE_COMMANDS="" \
+ENV REDIS_SENTINEL_PORT="26379" \
+    REDIS_MASTER_HOST="redis" \
+    REDIS_MASTER_PORT="6379" \
+    REDIS_MASTER_SET="mymaster" \
+    REDIS_SENTINEL_QUORUM="2" \
+    REDIS_SENTINEL_DOWN_AFTER="30000" \
+    REDIS_SENTINEL_FAILOVER_TIMEOUT="180000" \
+    REDIS_SENTINEL_PARALLEL_SYNCS="1" \
+    REDIS_MASTER_PASSWORD="" \
+    REDIS_SENTINEL_PASSWORD="" \
     PATH="/opt/redis/bin:${PATH}"
 
 VOLUME ["/data"]
 WORKDIR /data
-EXPOSE 6379
+EXPOSE 26379
 
 USER 1001
 ENTRYPOINT ["/opt/redis/entrypoint.sh"]
-CMD ["redis-server"]
+CMD ["redis-sentinel"]
