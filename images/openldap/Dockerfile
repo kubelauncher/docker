@@ -10,7 +10,8 @@ LABEL org.opencontainers.image.title="openldap" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
+RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
+    && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
     && groupadd -r -g 1001 openldap \
     && useradd -r -u 1001 -g openldap -d /data/openldap -s /bin/bash openldap \
     && apt-get update && apt-get install -y --no-install-recommends \
@@ -29,7 +30,8 @@ RUN printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/p
                                     /etc/ldap \
                                     /var/lib/ldap \
                                     /var/run/slapd \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /usr/sbin/policy-rc.d
 
 COPY rootfs/entrypoint.sh /opt/openldap/entrypoint.sh
 RUN chmod +x /opt/openldap/entrypoint.sh

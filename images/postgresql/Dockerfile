@@ -9,7 +9,11 @@ LABEL org.opencontainers.image.title="postgresql" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
+    && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
+    && groupadd -r -g 1001 postgres \
+    && useradd -r -u 1001 -g postgres -d /data/postgresql -s /bin/bash postgres \
+    && apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg \
     && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
         | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg \
@@ -27,16 +31,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
                 /docker-entrypoint-preinitdb.d \
                 /opt/postgresql/conf \
                 /run/postgresql \
-    && groupadd -r -g 1001 postgresql \
-    && useradd -r -u 1001 -g postgresql -d /data/postgresql -s /bin/bash postgresql \
-    && chown -R postgresql:postgresql /data/postgresql \
-                                       /docker-entrypoint-initdb.d \
-                                       /docker-entrypoint-preinitdb.d \
-                                       /opt/postgresql \
-                                       /run/postgresql \
+    && chown -R postgres:postgres /data/postgresql \
+                                    /docker-entrypoint-initdb.d \
+                                    /docker-entrypoint-preinitdb.d \
+                                    /opt/postgresql \
+                                    /run/postgresql \
     && chmod 700 /data/postgresql/data \
     && apt-get purge -y --auto-remove curl gnupg \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /usr/sbin/policy-rc.d
 
 COPY rootfs/entrypoint.sh /opt/postgresql/entrypoint.sh
 RUN chmod +x /opt/postgresql/entrypoint.sh

@@ -10,7 +10,7 @@ LABEL org.opencontainers.image.title="mongodb" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
+RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
     && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
     && groupadd -r -g 1001 mongodb \
     && useradd -r -u 1001 -g mongodb -d /data/mongodb -s /bin/bash mongodb \

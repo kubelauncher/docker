@@ -55,7 +55,6 @@ olcSuffix: ${root_dn}
 olcRootDN: cn=${LDAP_ADMIN_USERNAME:-admin},${root_dn}
 olcRootPW: ${hashed_admin_pw}
 olcDbDirectory: ${DATADIR}
-olcDbMaxSize: 1073741824
 olcDbIndex: objectClass eq
 olcDbIndex: cn,uid eq
 olcDbIndex: member,memberUid eq
