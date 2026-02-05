@@ -25,6 +25,10 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
                 /opt/openldap \
                 /docker-entrypoint-initdb.d \
     && cp -r /etc/ldap/slapd.d /opt/openldap/default-config \
+    && CONF_LDIF="/opt/openldap/default-config/cn=config/olcDatabase={0}config.ldif" \
+    && perl -0777 -i -pe 's/\n //g' "$CONF_LDIF" \
+    && sed -i '/^# CRC32/d' "$CONF_LDIF" \
+    && sed -i 's|by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by \* break|by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by dn.exact=gidNumber=1001+uidNumber=1001,cn=peercred,cn=external,cn=auth manage by * break|' "$CONF_LDIF" \
     && chown -R openldap:openldap /data/openldap \
                                     /opt/openldap \
                                     /docker-entrypoint-initdb.d \

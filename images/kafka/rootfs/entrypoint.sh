@@ -16,7 +16,8 @@ read_config() {
     if [ -n "${KAFKA_ADVERTISED_LISTENERS:-${KAFKA_CFG_ADVERTISED_LISTENERS}}" ]; then
         CFG_ADVERTISED="${KAFKA_ADVERTISED_LISTENERS:-${KAFKA_CFG_ADVERTISED_LISTENERS}}"
     else
-        local host="${HOSTNAME:-localhost}"
+        local host
+        host="$(hostname 2>/dev/null || echo 'localhost')"
         CFG_ADVERTISED="PLAINTEXT://${host}:${CFG_PORT}"
     fi
 
@@ -69,6 +70,12 @@ transaction.state.log.min.isr=1
 log.retention.hours=168
 log.segment.bytes=1073741824
 EOF
+
+    echo "=== Generated server.properties ==="
+    cat "$KAFKA_HOME/config/server.properties"
+    echo "=== KAFKA_* env vars remaining ==="
+    env | grep '^KAFKA_' || true
+    echo "==================================="
 
     if [ ! -f "${CFG_LOG_DIRS}/meta.properties" ]; then
         "$KAFKA_HOME/bin/kafka-storage.sh" format \
