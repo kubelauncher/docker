@@ -43,10 +43,8 @@ RUN chmod +x /opt/openldap/entrypoint.sh
 
 ENV LDAP_PORT="389" \
     LDAP_ADMIN_USERNAME="admin" \
-    LDAP_ADMIN_PASSWORD="" \
     LDAP_ROOT="dc=example,dc=org" \
     LDAP_ORGANISATION="Example Inc." \
-    LDAP_CONFIG_PASSWORD="" \
     LDAP_EXTRA_ARGS=""
 
 VOLUME ["/data/openldap", "/docker-entrypoint-initdb.d"]

@@ -47,7 +47,6 @@ RUN chmod +x /opt/redis/entrypoint.sh \
     && ln -s /opt/redis/bin/* /usr/local/bin/
 
 ENV REDIS_PORT="6379" \
-    REDIS_PASSWORD="" \
     REDIS_EXTRA_FLAGS="" \
     REDIS_DISABLE_COMMANDS="" \
     PATH="/opt/redis/bin:${PATH}"
