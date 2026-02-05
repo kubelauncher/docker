@@ -1,0 +1,88 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "images/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "images/**"
+  schedule:
+    # Daily at 6 AM UTC - scan for new CVEs
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  detect-images:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: set-matrix
+        run: |
+          IMAGES=$(ls -d images/*/ | xargs -I{} basename {} | jq -R . | jq -s -c .)
+          echo "matrix={\"image\":${IMAGES}}" >> "$GITHUB_OUTPUT"
+
+  trivy-scan:
+    needs: detect-images
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-images.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        run: |
+          IMAGE="ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest"
+          docker pull "${IMAGE}" || echo "Image not found, skipping"
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+  trivy-config-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy config scanner on Dockerfiles
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "config"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-config.sarif"
+          severity: "CRITICAL,HIGH,MEDIUM"
+
+      - name: Upload config scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-config.sarif"
