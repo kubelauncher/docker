@@ -105,8 +105,11 @@ jobs:
               docker run -d --name test -p 9042:9042 \
                 -e CASSANDRA_MAX_HEAP_SIZE=512M \
                 ${IMAGE}
-              sleep 120
-              docker exec test cqlsh -e "DESCRIBE CLUSTER"
+              for i in $(seq 1 60); do
+                docker exec test cqlsh -e "DESCRIBE CLUSTER" && break
+                echo "Waiting for Cassandra to start... ($i/60)"
+                sleep 5
+              done
 
           - image: memcached
             test: |
