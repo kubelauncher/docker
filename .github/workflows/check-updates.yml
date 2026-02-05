@@ -1,0 +1,186 @@
+name: Check Updates
+
+on:
+  schedule:
+    # Every day at 5 AM UTC
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  check-base-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Ubuntu 24.04 updates
+        run: |
+          # Get latest Ubuntu 24.04 digest
+          LATEST_DIGEST=$(docker manifest inspect ubuntu:24.04 2>/dev/null | jq -r '.manifests[0].digest' || echo "")
+
+          if [ -n "$LATEST_DIGEST" ]; then
+            echo "Latest Ubuntu 24.04 digest: ${LATEST_DIGEST}"
+            echo "UBUNTU_DIGEST=${LATEST_DIGEST}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Trigger rebuild if base image updated
+        if: env.UBUNTU_DIGEST != ''
+        run: |
+          # Check if we've seen this digest before
+          CACHE_FILE=".github/.ubuntu-digest-cache"
+
+          if [ -f "$CACHE_FILE" ]; then
+            CACHED_DIGEST=$(cat "$CACHE_FILE")
+            if [ "$CACHED_DIGEST" = "$UBUNTU_DIGEST" ]; then
+              echo "Ubuntu base image unchanged"
+              exit 0
+            fi
+          fi
+
+          echo "Ubuntu base image updated, triggering rebuild..."
+          echo "$UBUNTU_DIGEST" > "$CACHE_FILE"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$CACHE_FILE"
+          git commit -m "chore: update Ubuntu base image digest" || exit 0
+          git push
+
+  check-app-versions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Redis - check GitHub releases
+          - image: redis
+            type: github
+            repo: redis/redis
+            arg: REDIS_VERSION
+
+          # PostgreSQL - check apt repository
+          - image: postgresql
+            type: apt
+            package: postgresql-17
+            arg: POSTGRESQL_VERSION
+
+          # RabbitMQ - check GitHub releases
+          - image: rabbitmq
+            type: github
+            repo: rabbitmq/rabbitmq-server
+            arg: RABBITMQ_VERSION
+
+          # Kafka - check Apache downloads
+          - image: kafka
+            type: apache
+            project: kafka
+            arg: KAFKA_VERSION
+
+          # Zookeeper - check Apache downloads
+          - image: zookeeper
+            type: apache
+            project: zookeeper
+            arg: ZOOKEEPER_VERSION
+
+          # Cassandra - check Apache downloads
+          - image: cassandra
+            type: apache
+            project: cassandra
+            arg: CASSANDRA_VERSION
+
+          # Keycloak - check GitHub releases
+          - image: keycloak
+            type: github
+            repo: keycloak/keycloak
+            arg: KEYCLOAK_VERSION
+
+          # MongoDB - check apt repository
+          - image: mongodb
+            type: apt
+            package: mongodb-org
+            arg: MONGODB_VERSION
+
+          # MariaDB - check apt repository
+          - image: mariadb
+            type: apt
+            package: mariadb-server
+            arg: MARIADB_VERSION
+
+          # MySQL - check apt repository
+          - image: mysql
+            type: apt
+            package: mysql-server
+            arg: MYSQL_VERSION
+
+          # Memcached - check apt repository
+          - image: memcached
+            type: apt
+            package: memcached
+            arg: MEMCACHED_VERSION
+
+          # OpenLDAP - check apt repository
+          - image: openldap
+            type: apt
+            package: slapd
+            arg: OPENLDAP_VERSION
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get current version from Dockerfile
+        id: current
+        run: |
+          DOCKERFILE="images/${{ matrix.image }}/Dockerfile"
+          if [ -f "$DOCKERFILE" ]; then
+            VERSION=$(grep -oP 'ARG ${{ matrix.arg }}=\K[0-9]+\.[0-9]+(\.[0-9]+)?' "$DOCKERFILE" | head -1 || echo "")
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "Current ${{ matrix.image }} version: ${VERSION}"
+          fi
+
+      - name: Check latest GitHub release
+        if: matrix.type == 'github'
+        id: github
+        run: |
+          LATEST=$(gh api "repos/${{ matrix.repo }}/releases/latest" --jq '.tag_name' 2>/dev/null | sed 's/^v//' || echo "")
+          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+          echo "Latest ${{ matrix.image }} version: ${LATEST}"
+
+      - name: Check latest Apache version
+        if: matrix.type == 'apache'
+        id: apache
+        run: |
+          case "${{ matrix.project }}" in
+            kafka)
+              LATEST=$(curl -sfL "https://downloads.apache.org/kafka/" | grep -oP 'href="\K[0-9]+\.[0-9]+\.[0-9]+(?=/")' | sort -V | tail -1)
+              ;;
+            zookeeper)
+              LATEST=$(curl -sfL "https://downloads.apache.org/zookeeper/" | grep -oP 'href="zookeeper-\K[0-9]+\.[0-9]+\.[0-9]+(?=/")' | sort -V | tail -1)
+              ;;
+            cassandra)
+              LATEST=$(curl -sfL "https://downloads.apache.org/cassandra/" | grep -oP 'href="\K[0-9]+\.[0-9]+\.[0-9]+(?=/")' | sort -V | tail -1)
+              ;;
+          esac
+          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+          echo "Latest ${{ matrix.image }} version: ${LATEST}"
+
+      - name: Compare and notify
+        run: |
+          CURRENT="${{ steps.current.outputs.version }}"
+
+          case "${{ matrix.type }}" in
+            github) LATEST="${{ steps.github.outputs.version }}" ;;
+            apache) LATEST="${{ steps.apache.outputs.version }}" ;;
+            apt) LATEST="$CURRENT" ;; # APT handled by Renovate
+          esac
+
+          if [ -n "$LATEST" ] && [ -n "$CURRENT" ] && [ "$LATEST" != "$CURRENT" ]; then
+            echo "::warning::${{ matrix.image }}: Update available $CURRENT -> $LATEST"
+          else
+            echo "${{ matrix.image }}: Up to date ($CURRENT)"
+          fi
