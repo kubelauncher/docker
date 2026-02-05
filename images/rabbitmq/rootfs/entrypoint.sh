@@ -6,7 +6,10 @@ setup_rabbitmq() {
     export RABBITMQ_LOG_BASE="${RABBITMQ_LOG_DIR:-/data/rabbitmq/logs}"
 
     local conf="/etc/rabbitmq/rabbitmq.conf"
-    cat > "$conf" <<EOF
+    # Only generate config if file doesn't exist or is writable
+    # (skip if mounted read-only from ConfigMap)
+    if [ ! -f "$conf" ] || : >> "$conf" 2>/dev/null; then
+        cat > "$conf" <<EOF
 default_user = ${RABBITMQ_DEFAULT_USER:-guest}
 default_pass = ${RABBITMQ_DEFAULT_PASS:-guest}
 default_vhost = ${RABBITMQ_DEFAULT_VHOST:-/}
@@ -15,12 +18,13 @@ listeners.tcp.default = 5672
 management.tcp.port = 15672
 EOF
 
-    if [ -n "$RABBITMQ_VM_MEMORY_HIGH_WATERMARK" ]; then
-        echo "vm_memory_high_watermark.relative = ${RABBITMQ_VM_MEMORY_HIGH_WATERMARK}" >> "$conf"
-    fi
+        if [ -n "$RABBITMQ_VM_MEMORY_HIGH_WATERMARK" ]; then
+            echo "vm_memory_high_watermark.relative = ${RABBITMQ_VM_MEMORY_HIGH_WATERMARK}" >> "$conf"
+        fi
 
-    if [ -n "$RABBITMQ_DISK_FREE_LIMIT" ]; then
-        echo "disk_free_limit.absolute = ${RABBITMQ_DISK_FREE_LIMIT}" >> "$conf"
+        if [ -n "$RABBITMQ_DISK_FREE_LIMIT" ]; then
+            echo "disk_free_limit.absolute = ${RABBITMQ_DISK_FREE_LIMIT}" >> "$conf"
+        fi
     fi
 
     if [ -n "$RABBITMQ_PLUGINS" ]; then
