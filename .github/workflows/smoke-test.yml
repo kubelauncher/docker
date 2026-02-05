@@ -172,10 +172,11 @@ jobs:
                 -e CASSANDRA_MAX_HEAP_SIZE=512M \
                 ${IMAGE}
               for i in $(seq 1 60); do
-                docker exec test cqlsh -e "DESCRIBE CLUSTER" && break
+                docker exec test nodetool status | grep -qE "^UN" && break
                 echo "Waiting for Cassandra to start... ($i/60)"
                 sleep 5
               done
+              docker exec test nodetool status | grep -qE "^UN"
               ;;
             memcached)
               docker run -d --name test -p 11211:11211 ${IMAGE}
