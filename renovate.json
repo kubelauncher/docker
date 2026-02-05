@@ -4,6 +4,9 @@
     "config:recommended"
   ],
   "labels": ["dependencies"],
+  "automerge": true,
+  "automergeType": "pr",
+  "platformAutomerge": true,
   "customManagers": [
     {
       "customType": "regex",
@@ -92,6 +95,23 @@
       "depNameTemplate": "mongodb/mongo",
       "datasourceTemplate": "docker",
       "extractVersionTemplate": "^(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["images/mariadb/Dockerfile$"],
+      "matchStrings": ["ARG MARIADB_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "mariadb",
+      "datasourceTemplate": "docker",
+      "extractVersionTemplate": "^(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["images/openldap/Dockerfile$"],
+      "matchStrings": ["ARG OPENLDAP_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "openldap/openldap",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^OPENLDAP_REL_ENG_(?<version>[\\d_]+)$",
+      "versioningTemplate": "regex:^(?<major>\\d+)_(?<minor>\\d+)_(?<patch>\\d+)$"
     }
   ],
   "packageRules": [
@@ -104,13 +124,13 @@
     {
       "matchPackageNames": ["redis/redis"],
       "groupName": "redis",
-      "automerge": false
+      "automerge": true
     },
     {
       "matchPackageNames": ["kubernetes/kubernetes"],
       "allowedVersions": "!/alpha|beta|rc/",
       "groupName": "kubectl",
-      "automerge": false
+      "automerge": true
     },
     {
       "matchPackageNames": ["mikefarah/yq"],
@@ -121,46 +141,56 @@
       "matchPackageNames": ["rabbitmq/rabbitmq-server"],
       "allowedVersions": "!/alpha|beta|rc/",
       "groupName": "rabbitmq",
-      "automerge": false
+      "automerge": true
     },
     {
       "matchPackageNames": ["memcached/memcached"],
       "groupName": "memcached",
-      "automerge": false
+      "automerge": true
     },
     {
       "matchPackageNames": ["apache/kafka"],
       "allowedVersions": "!/alpha|beta|rc/",
       "groupName": "kafka",
-      "automerge": false
+      "automerge": true
     },
     {
       "matchPackageNames": ["apache/zookeeper"],
       "allowedVersions": "!/alpha|beta|rc/",
       "groupName": "zookeeper",
-      "automerge": false
+      "automerge": true
     },
     {
       "matchPackageNames": ["apache/cassandra"],
       "allowedVersions": "!/alpha|beta|rc|tent/",
       "groupName": "cassandra",
-      "automerge": false
+      "automerge": true
     },
     {
       "matchPackageNames": ["keycloak/keycloak"],
       "allowedVersions": "!/alpha|beta|rc|nightly/",
       "groupName": "keycloak",
-      "automerge": false
+      "automerge": true
     },
     {
       "matchPackageNames": ["mysql/mysql-server"],
       "groupName": "mysql",
-      "automerge": false
+      "automerge": true
     },
     {
       "matchPackageNames": ["mongodb/mongo"],
       "groupName": "mongodb",
-      "automerge": false
+      "automerge": true
+    },
+    {
+      "matchPackageNames": ["mariadb"],
+      "groupName": "mariadb",
+      "automerge": true
+    },
+    {
+      "matchPackageNames": ["openldap/openldap"],
+      "groupName": "openldap",
+      "automerge": true
     }
   ]
 }

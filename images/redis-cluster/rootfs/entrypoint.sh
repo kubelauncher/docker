@@ -3,16 +3,17 @@ set -e
 
 setup_cluster_conf() {
     local conf="/opt/redis/etc/redis.conf"
+    local port="${REDIS_PORT:-6379}"
+    local bus_port="${REDIS_CLUSTER_BUS_PORT:-16379}"
 
     cat > "$conf" <<EOF
 bind 0.0.0.0
-port ${REDIS_PORT:-6379}
-dir /data
-appendonly yes
+port ${port}
 protected-mode no
 cluster-enabled yes
 cluster-config-file /data/nodes.conf
 cluster-node-timeout 5000
+appendonly yes
 EOF
 
     if [ -n "$REDIS_PASSWORD" ]; then

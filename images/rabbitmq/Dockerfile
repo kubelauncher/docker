@@ -40,6 +40,7 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
     && chown -R rabbitmq:rabbitmq /var/lib/rabbitmq \
                                    /etc/rabbitmq \
                                    /data/rabbitmq \
+    && rm -f /var/lib/rabbitmq/.erlang.cookie \
     && apt-get purge -y --auto-remove curl gnupg \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /usr/sbin/policy-rc.d
