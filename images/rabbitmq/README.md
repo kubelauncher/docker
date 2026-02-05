@@ -1,6 +1,6 @@
 # rabbitmq
 
-RabbitMQ message broker on Alpine Linux. Management UI and Prometheus plugin enabled by default.
+RabbitMQ message broker on Ubuntu Linux. Management UI and Prometheus plugin enabled by default.
 
 ## Quick start
 
@@ -27,6 +27,6 @@ Management UI available on port `15672`.
 
 ## Build details
 
-- **Base**: Alpine 3.23
-- **Build**: Generic-unix release from GitHub + Erlang from Alpine packages
+- **Base**: Ubuntu 24.04
+- **Build**: Generic-unix release from GitHub + Erlang from Cloudsmith packages
 - **Data**: `/data/rabbitmq`
