@@ -35,7 +35,7 @@ COPY rootfs/entrypoint.sh /opt/cassandra/entrypoint.sh
 RUN chmod +x /opt/cassandra/entrypoint.sh
 
 ENV CASSANDRA_CLUSTER_NAME="Test Cluster" \
-    CASSANDRA_SEEDS="127.0.0.1" \
+    CASSANDRA_SEEDS="" \
     CASSANDRA_LISTEN_ADDRESS="" \
     CASSANDRA_BROADCAST_ADDRESS="" \
     CASSANDRA_RPC_ADDRESS="0.0.0.0" \
