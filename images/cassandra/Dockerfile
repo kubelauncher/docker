@@ -43,7 +43,6 @@ ENV CASSANDRA_CLUSTER_NAME="Test Cluster" \
     CASSANDRA_STORAGE_PORT="7000" \
     CASSANDRA_DATA_DIR="/data/cassandra/data" \
     CASSANDRA_COMMITLOG_DIR="/data/cassandra/commitlog" \
-    CASSANDRA_HEAP_NEWSIZE="128M" \
     CASSANDRA_MAX_HEAP_SIZE="512M" \
     CASSANDRA_EXTRA_FLAGS="" \
     PATH="/opt/cassandra/bin:${PATH}"
