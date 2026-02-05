@@ -18,7 +18,7 @@ setup_config() {
         -e "s/^# *rpc_address:.*/rpc_address: ${rpc_addr}/" \
         -e "s/^rpc_address:.*/rpc_address: ${rpc_addr}/" \
         -e "s/^# *broadcast_rpc_address:.*/broadcast_rpc_address: ${broadcast_rpc_addr}/" \
-        -e "s/- seeds:.*/- seeds: \"${CASSANDRA_SEEDS:-127.0.0.1}\"/" \
+        -e "s/- seeds:.*/- seeds: \"${CASSANDRA_SEEDS:-$listen_addr}\"/" \
         -e "s|/var/lib/cassandra/data|${CASSANDRA_DATA_DIR:-/data/cassandra/data}|g" \
         -e "s|/var/lib/cassandra/commitlog|${CASSANDRA_COMMITLOG_DIR:-/data/cassandra/commitlog}|g" \
         -e "s|/var/lib/cassandra/saved_caches|/data/cassandra/saved_caches|g" \
