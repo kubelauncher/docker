@@ -4,7 +4,9 @@ set -e
 DATADIR="${MYSQL_DATA_DIR:-/data/mysql/data}"
 
 init_database() {
+    # Create runtime directories (PVC mount may overwrite them)
     mkdir -p /run/mysqld
+    mkdir -p "$DATADIR"
 
     if [ -d "$DATADIR/mysql" ]; then
         echo "MySQL data directory already initialized, skipping."

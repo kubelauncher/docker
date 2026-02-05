@@ -5,6 +5,10 @@ DATADIR="${MONGODB_DATA_DIR:-/data/mongodb/data}"
 LOGDIR="${MONGODB_LOG_DIR:-/data/mongodb/logs}"
 
 init_database() {
+    # Create runtime directories (PVC mount may overwrite them)
+    mkdir -p "$DATADIR"
+    mkdir -p "$LOGDIR"
+
     if [ -f "$DATADIR/WiredTiger" ]; then
         echo "MongoDB data directory already initialized, skipping."
         return
@@ -12,13 +16,14 @@ init_database() {
 
     echo "Initializing MongoDB..."
 
+    # Start mongod in background (not --fork which requires root for some operations)
     mongod \
         --dbpath "$DATADIR" \
         --port "${MONGODB_PORT:-27017}" \
         --bind_ip 127.0.0.1 \
         --noauth \
-        --fork \
-        --logpath "$LOGDIR/mongod.log"
+        --logpath "$LOGDIR/mongod.log" &
+    local pid=$!
 
     for i in $(seq 1 30); do
         if mongosh --port "${MONGODB_PORT:-27017}" --eval "db.adminCommand('ping')" &>/dev/null; then
@@ -61,7 +66,9 @@ EOJS
         esac
     done
 
-    mongod --dbpath "$DATADIR" --shutdown
+    # Shutdown MongoDB gracefully
+    kill "$pid"
+    wait "$pid" 2>/dev/null || true
 
     echo "MongoDB initialization complete."
 }
