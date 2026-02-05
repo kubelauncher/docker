@@ -14,7 +14,7 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
     && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
     && groupadd -r -g 1001 rabbitmq \
     && useradd -r -u 1001 -g rabbitmq -d /var/lib/rabbitmq -s /bin/bash rabbitmq \
-    && apt-get update && apt-get upgrade -y \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg bash tzdata \
     && curl -fsSL https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key \
