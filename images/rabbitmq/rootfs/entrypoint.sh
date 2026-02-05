@@ -6,9 +6,10 @@ setup_rabbitmq() {
     export RABBITMQ_LOG_BASE="${RABBITMQ_LOG_DIR:-/data/rabbitmq/logs}"
 
     local conf="/etc/rabbitmq/rabbitmq.conf"
-    # Only generate config if file doesn't exist or is writable
-    # (skip if mounted read-only from ConfigMap)
-    if [ ! -f "$conf" ] || : >> "$conf" 2>/dev/null; then
+    # Skip config generation if file exists and is read-only (ConfigMap mount)
+    if [ -f "$conf" ] && [ ! -w "$conf" ]; then
+        echo "Using existing read-only config: $conf"
+    else
         cat > "$conf" <<EOF
 default_user = ${RABBITMQ_DEFAULT_USER:-guest}
 default_pass = ${RABBITMQ_DEFAULT_PASS:-guest}
