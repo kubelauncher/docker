@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:24.04@sha256:cd1dba651b3080c3686ecf4e3c4220f026b521fb76978881737d24f200828b2b
 
-ARG MARIADB_VERSION=11.4
+ARG MARIADB_VERSION=11.4.5
 
 LABEL org.opencontainers.image.title="mariadb" \
       org.opencontainers.image.description="MariaDB relational database" \
@@ -10,13 +10,15 @@ LABEL org.opencontainers.image.title="mariadb" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update \
+# Extract major.minor for apt repo URL (e.g., 11.4 from 11.4.5)
+RUN MARIADB_MINOR=$(echo "${MARIADB_VERSION}" | cut -d. -f1-2) \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL 'https://mariadb.org/mariadb_release_signing_key.pgp' \
         -o /etc/apt/keyrings/mariadb-keyring.pgp \
-    && echo "deb [signed-by=/etc/apt/keyrings/mariadb-keyring.pgp] https://deb.mariadb.org/${MARIADB_VERSION}/ubuntu noble main" \
+    && echo "deb [signed-by=/etc/apt/keyrings/mariadb-keyring.pgp] https://deb.mariadb.org/${MARIADB_MINOR}/ubuntu noble main" \
         > /etc/apt/sources.list.d/mariadb.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
