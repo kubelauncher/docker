@@ -3,12 +3,17 @@ set -e
 
 DATADIR="/data/openldap/data"
 CONFIGDIR="/data/openldap/config"
+RUNDIR="/data/openldap/run"
 
 init_ldap() {
-    if [ -d "$CONFIGDIR/cn=config" ]; then
+    # Check for a marker file to ensure init completed successfully
+    if [ -f "$CONFIGDIR/.init_done" ]; then
         echo "OpenLDAP already initialized, skipping."
         return
     fi
+
+    # Clean up any partial config from failed init
+    rm -rf "$CONFIGDIR"/*
 
     echo "Initializing OpenLDAP..."
 
@@ -29,11 +34,11 @@ init_ldap() {
     # Use the pre-installed default slapd config as a base
     cp -r /opt/openldap/default-config/* "$CONFIGDIR/"
 
-    local ldapi_socket="/var/run/slapd/ldapi"
+    local ldapi_socket="$RUNDIR/ldapi"
     local ldapi_url="ldapi://$(echo "$ldapi_socket" | sed 's|/|%2F|g')/"
 
     # Start a temporary slapd to configure via ldapmodify
-    slapd -F "$CONFIGDIR" -h "ldap://127.0.0.1:3890/ ${ldapi_url}" -d 0 &
+    slapd -F "$CONFIGDIR" -h "ldap://127.0.0.1:3890/ ${ldapi_url}" &
     local pid=$!
 
     # Wait for slapd to be ready
@@ -115,13 +120,17 @@ EOF
     kill "$pid"
     wait "$pid" 2>/dev/null || true
     sleep 1
+
+    # Mark init as complete
+    touch "$CONFIGDIR/.init_done"
+    echo "OpenLDAP initialization complete."
 }
 
 if [ "$1" = "slapd" ]; then
-    mkdir -p /var/run/slapd "$DATADIR" "$CONFIGDIR"
+    mkdir -p "$RUNDIR" "$DATADIR" "$CONFIGDIR"
     init_ldap
     shift
-    exec slapd -F "$CONFIGDIR" -h "ldap://0.0.0.0:${LDAP_PORT:-389}/" -d 0 $LDAP_EXTRA_ARGS "$@"
+    exec slapd -F "$CONFIGDIR" -h "ldap://0.0.0.0:${LDAP_PORT:-389}/" $LDAP_EXTRA_ARGS "$@"
 fi
 
 exec "$@"
