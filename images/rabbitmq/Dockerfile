@@ -10,34 +10,41 @@ LABEL org.opencontainers.image.title="rabbitmq" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update \
+RUN printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
+    && groupadd -r -g 1001 rabbitmq \
+    && useradd -r -u 1001 -g rabbitmq -d /var/lib/rabbitmq -s /bin/bash rabbitmq \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
-        ca-certificates curl gnupg bash tzdata xz-utils \
+        ca-certificates curl gnupg bash tzdata \
     && curl -fsSL https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key \
         | gpg --dearmor -o /usr/share/keyrings/rabbitmq-erlang.gpg \
+    && curl -fsSL https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key \
+        | gpg --dearmor -o /usr/share/keyrings/rabbitmq-server.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/rabbitmq-erlang.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/ubuntu noble main" \
         > /etc/apt/sources.list.d/rabbitmq-erlang.list \
+    && echo "deb [signed-by=/usr/share/keyrings/rabbitmq-server.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-server/deb/ubuntu noble main" \
+        > /etc/apt/sources.list.d/rabbitmq-server.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends erlang-nox \
-    && mkdir -p /opt/rabbitmq \
-    && groupadd -r -g 1001 rabbitmq \
-    && useradd -r -u 1001 -g rabbitmq -d /opt/rabbitmq -s /bin/bash rabbitmq \
-    && curl -fsSL "https://github.com/rabbitmq/rabbitmq-server/releases/download/v${RABBITMQ_VERSION}/rabbitmq-server-generic-unix-${RABBITMQ_VERSION}.tar.xz" \
-        | tar xJ --strip-components=1 -C /opt/rabbitmq \
-    && mkdir -p /data/rabbitmq/conf \
-                /data/rabbitmq/data \
-                /data/rabbitmq/logs \
-                /etc/rabbitmq \
-    && ln -sf /opt/rabbitmq/sbin/* /usr/local/bin/ \
+    && apt-get install -y --no-install-recommends \
+        erlang-base erlang-asn1 erlang-crypto erlang-eldap \
+        erlang-ftp erlang-inets erlang-mnesia erlang-os-mon \
+        erlang-parsetools erlang-public-key erlang-runtime-tools \
+        erlang-snmp erlang-ssl erlang-syntax-tools \
+        erlang-tftp erlang-tools erlang-xmerl \
+    && apt-get install -y --no-install-recommends rabbitmq-server \
     && rabbitmq-plugins enable --offline rabbitmq_management rabbitmq_prometheus \
-    && chown -R rabbitmq:rabbitmq /opt/rabbitmq \
-                                   /data/rabbitmq \
+    && mkdir -p /data/rabbitmq/conf \
+               /data/rabbitmq/data \
+               /data/rabbitmq/logs \
+    && chown -R rabbitmq:rabbitmq /var/lib/rabbitmq \
                                    /etc/rabbitmq \
+                                   /data/rabbitmq \
     && apt-get purge -y --auto-remove curl gnupg \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /usr/sbin/policy-rc.d
 
-COPY rootfs/entrypoint.sh /opt/rabbitmq/entrypoint.sh
-RUN chmod +x /opt/rabbitmq/entrypoint.sh
+COPY rootfs/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENV RABBITMQ_NODE_TYPE="stats" \
     RABBITMQ_NODE_NAME="rabbit@localhost" \
@@ -48,12 +55,11 @@ ENV RABBITMQ_NODE_TYPE="stats" \
     RABBITMQ_LOG_DIR="/data/rabbitmq/logs" \
     RABBITMQ_CONF_DIR="/data/rabbitmq/conf" \
     RABBITMQ_PLUGINS="" \
-    HOME="/opt/rabbitmq" \
-    PATH="/opt/rabbitmq/sbin:${PATH}"
+    HOME="/var/lib/rabbitmq"
 
 VOLUME ["/data/rabbitmq"]
 EXPOSE 4369 5551 5552 5671 5672 15671 15672 25672
 
 USER 1001
-ENTRYPOINT ["/opt/rabbitmq/entrypoint.sh"]
+ENTRYPOINT ["entrypoint.sh"]
 CMD ["rabbitmq-server"]
