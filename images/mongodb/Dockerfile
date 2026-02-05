@@ -14,7 +14,7 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
     && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
     && groupadd -r -g 1001 mongodb \
     && useradd -r -u 1001 -g mongodb -d /data/mongodb -s /bin/bash mongodb \
-    && apt-get update \
+    && apt-get update && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg \
     && curl -fsSL "https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc" \

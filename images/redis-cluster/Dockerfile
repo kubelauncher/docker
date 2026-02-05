@@ -30,7 +30,7 @@ LABEL org.opencontainers.image.title="redis-cluster" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
         libssl3t64 \
         ca-certificates \
         tzdata \
