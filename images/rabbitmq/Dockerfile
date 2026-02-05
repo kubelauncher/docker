@@ -1,22 +1,27 @@
 # syntax=docker/dockerfile:1
-FROM alpine:3.23
+FROM ubuntu:24.04
 
 ARG RABBITMQ_VERSION=4.2.3
-ARG TARGETARCH
 
 LABEL org.opencontainers.image.title="rabbitmq" \
       org.opencontainers.image.description="RabbitMQ message broker" \
       org.opencontainers.image.version="${RABBITMQ_VERSION}" \
       org.opencontainers.image.source="https://github.com/kubelauncher/docker"
 
-RUN apk add --no-cache \
-        erlang27 \
-        bash \
-        curl \
-        tzdata \
-    && addgroup -S -g 1001 rabbitmq \
-    && adduser -S -u 1001 -G rabbitmq -h /opt/rabbitmq rabbitmq \
-    && ARCH="$(case ${TARGETARCH:-amd64} in amd64) echo amd64;; arm64) echo aarch64;; esac)" \
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates curl gnupg bash tzdata \
+    && curl -fsSL https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key \
+        | gpg --dearmor -o /usr/share/keyrings/rabbitmq-erlang.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/rabbitmq-erlang.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/ubuntu noble main" \
+        > /etc/apt/sources.list.d/rabbitmq-erlang.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends erlang-nox \
+    && mkdir -p /opt/rabbitmq \
+    && groupadd -r -g 1001 rabbitmq \
+    && useradd -r -u 1001 -g rabbitmq -d /opt/rabbitmq -s /bin/bash rabbitmq \
     && curl -fsSL "https://github.com/rabbitmq/rabbitmq-server/releases/download/v${RABBITMQ_VERSION}/rabbitmq-server-generic-unix-${RABBITMQ_VERSION}.tar.xz" \
         | tar xJ --strip-components=1 -C /opt/rabbitmq \
     && mkdir -p /data/rabbitmq/conf \
@@ -28,7 +33,8 @@ RUN apk add --no-cache \
     && chown -R rabbitmq:rabbitmq /opt/rabbitmq \
                                    /data/rabbitmq \
                                    /etc/rabbitmq \
-    && apk del curl
+    && apt-get purge -y --auto-remove curl gnupg \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY rootfs/entrypoint.sh /opt/rabbitmq/entrypoint.sh
 RUN chmod +x /opt/rabbitmq/entrypoint.sh

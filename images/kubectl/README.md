@@ -1,6 +1,6 @@
 # kubectl
 
-Kubernetes CLI utility container on Alpine Linux. Includes `jq`, `yq`, `git`, and `envsubst`.
+Kubernetes CLI utility container on Ubuntu Linux. Includes `jq`, `yq`, `git`, and `envsubst`.
 
 ## Quick start
 
@@ -21,5 +21,5 @@ docker run --rm -v ~/.kube:/home/kubectl/.kube ghcr.io/kubelauncher/kubectl get 
 
 ## Build details
 
-- **Base**: Alpine 3.23
+- **Base**: Ubuntu 24.04
 - **Build**: Official kubectl binary + yq from GitHub releases (SHA256 verified)

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM alpine:3.23
+FROM ubuntu:24.04
 
 ARG KUBECTL_VERSION=1.35.0
 ARG YQ_VERSION=4.52.2
@@ -10,12 +10,14 @@ LABEL org.opencontainers.image.title="kubectl" \
       org.opencontainers.image.version="${KUBECTL_VERSION}" \
       org.opencontainers.image.source="https://github.com/kubelauncher/docker"
 
-RUN apk add --no-cache \
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
         git \
         jq \
-        gettext \
+        gettext-base \
         bash \
     && ARCH="${TARGETARCH:-amd64}" \
     && curl -fsSL "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" -o /usr/local/bin/kubectl \
@@ -25,11 +27,12 @@ RUN apk add --no-cache \
     && rm /tmp/kubectl.sha256 \
     && curl -fsSL "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${ARCH}" -o /usr/local/bin/yq \
     && chmod +x /usr/local/bin/yq \
-    && addgroup -S -g 1001 kubectl \
-    && adduser -S -u 1001 -G kubectl -h /home/kubectl kubectl \
+    && groupadd -r -g 1001 kubectl \
+    && useradd -r -u 1001 -g kubectl -d /home/kubectl -m -s /bin/bash kubectl \
     && mkdir -p /home/kubectl/.kube \
     && chown -R kubectl:kubectl /home/kubectl \
-    && apk del curl
+    && apt-get purge -y --auto-remove curl \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/usr/local/bin:${PATH}"
 

@@ -33,16 +33,9 @@ jobs:
 
       - id: set-matrix
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            IMAGES='["redis","postgresql","rabbitmq","kubectl"]'
-            echo "matrix={\"image\":${IMAGES}}" >> "$GITHUB_OUTPUT"
-            echo "has_changes=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # If HEAD~1 doesn't exist (initial commit), build all images
-          if ! git rev-parse HEAD~1 >/dev/null 2>&1; then
-            IMAGES='["redis","postgresql","rabbitmq","kubectl"]'
+          # Build all images on workflow_dispatch or initial commit
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || ! git rev-parse HEAD~1 >/dev/null 2>&1; then
+            IMAGES=$(ls -d images/*/ | xargs -I{} basename {} | jq -R . | jq -s -c .)
             echo "matrix={\"image\":${IMAGES}}" >> "$GITHUB_OUTPUT"
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -79,20 +72,7 @@ jobs:
         id: version
         run: |
           DOCKERFILE="images/${{ matrix.image }}/Dockerfile"
-          case "${{ matrix.image }}" in
-            redis)
-              VERSION=$(grep -oP 'REDIS_VERSION=\K[^\s]+' "$DOCKERFILE" | head -1)
-              ;;
-            postgresql)
-              VERSION=$(grep -oP 'POSTGRESQL_VERSION=\K[^\s]+' "$DOCKERFILE" | head -1)
-              ;;
-            rabbitmq)
-              VERSION=$(grep -oP 'RABBITMQ_VERSION=\K[^\s]+' "$DOCKERFILE" | head -1)
-              ;;
-            kubectl)
-              VERSION=$(grep -oP 'KUBECTL_VERSION=\K[^\s]+' "$DOCKERFILE" | head -1)
-              ;;
-          esac
+          VERSION=$(grep -oP 'ARG \w+_VERSION=\K[^\s]+' "$DOCKERFILE" | head -1)
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           MAJOR=$(echo "$VERSION" | cut -d. -f1)
           MINOR=$(echo "$VERSION" | cut -d. -f1-2)
