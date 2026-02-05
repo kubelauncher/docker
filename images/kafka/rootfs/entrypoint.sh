@@ -53,6 +53,7 @@ EOF
 }
 
 if [ "$1" = "kafka" ]; then
+    unset KAFKA_LISTENERS KAFKA_ADVERTISED_LISTENERS
     setup_kraft
     exec "$KAFKA_HOME/bin/kafka-server-start.sh" "$KAFKA_HOME/config/server.properties" $KAFKA_EXTRA_FLAGS
 fi
