@@ -38,7 +38,7 @@ ENV KC_HTTP_PORT="8080" \
     PATH="/opt/keycloak/bin:${PATH}"
 
 VOLUME ["/data/keycloak"]
-EXPOSE 8080 8443
+EXPOSE 8080 8443 9000
 
 USER 1001
 ENTRYPOINT ["/opt/keycloak/entrypoint.sh"]
