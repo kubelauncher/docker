@@ -12,11 +12,11 @@ init_database() {
     echo "Initializing MySQL database..."
 
     mysqld --initialize-insecure \
-        --user=mysql-kl \
+        --user=mysql \
         --datadir="$DATADIR"
 
     mysqld \
-        --user=mysql-kl \
+        --user=mysql \
         --datadir="$DATADIR" \
         --skip-networking \
         --socket=/run/mysqld/mysqld.sock &
@@ -90,7 +90,7 @@ if [ "$1" = "mysqld" ]; then
     init_database
     shift
     exec mysqld \
-        --user=mysql-kl \
+        --user=mysql \
         --datadir="$DATADIR" \
         --port="${MYSQL_PORT_NUMBER:-3306}" \
         --bind-address=0.0.0.0 \
