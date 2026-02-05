@@ -10,6 +10,7 @@ Community-maintained Docker images built on Ubuntu Linux. Multi-arch (`amd64`/`a
 | [redis-sentinel](images/redis-sentinel) | Redis Sentinel high-availability monitor |
 | [redis-cluster](images/redis-cluster) | Redis Cluster node |
 | [postgresql](images/postgresql) | PostgreSQL relational database |
+| [mysql](images/mysql) | MySQL relational database |
 | [mariadb](images/mariadb) | MariaDB relational database |
 | [mongodb](images/mongodb) | MongoDB document database |
 | [rabbitmq](images/rabbitmq) | RabbitMQ message broker |

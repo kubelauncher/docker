@@ -12,7 +12,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        ca-certificates curl gnupg bash tzdata \
+        ca-certificates curl gnupg bash tzdata xz-utils \
     && curl -fsSL https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key \
         | gpg --dearmor -o /usr/share/keyrings/rabbitmq-erlang.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/rabbitmq-erlang.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/ubuntu noble main" \

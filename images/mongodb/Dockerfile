@@ -10,7 +10,9 @@ LABEL org.opencontainers.image.title="mongodb" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update \
+RUN printf '#!/bin/sh\nexit 0\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
+    && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg \
     && curl -fsSL "https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc" \
