@@ -3,8 +3,23 @@ set -e
 
 setup_cluster_conf() {
     local conf="/opt/redis/etc/redis.conf"
+    local runtime_conf="/data/redis.conf"
     local port="${REDIS_PORT:-6379}"
-    local bus_port="${REDIS_CLUSTER_BUS_PORT:-16379}"
+
+    # If config exists and is read-only (ConfigMap mount), use it directly
+    if [ -f "$conf" ] && [ ! -w "$conf" ]; then
+        echo "$conf"
+        return
+    fi
+
+    # If config exists and is writable, use it
+    if [ -f "$conf" ] && [ -w "$conf" ]; then
+        echo "$conf"
+        return
+    fi
+
+    # Generate config in /data (always writable)
+    conf="$runtime_conf"
 
     cat > "$conf" <<EOF
 bind 0.0.0.0
