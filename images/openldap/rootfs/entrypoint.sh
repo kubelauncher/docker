@@ -75,12 +75,10 @@ olcDbIndex: cn,uid eq
 olcDbIndex: member,memberUid eq
 EOF
 
-    # Stop temporary slapd
-    kill "$pid"
-    wait "$pid" 2>/dev/null || true
-
-    # Add base entry using slapadd
-    cat > /tmp/base.ldif <<EOF
+    # Add base entry via LDAP protocol (avoids slapadd issues)
+    ldapadd -x -H ldap://127.0.0.1:3890/ \
+        -D "cn=${LDAP_ADMIN_USERNAME:-admin},${root_dn}" \
+        -w "$admin_password" <<EOF
 dn: ${root_dn}
 objectClass: top
 objectClass: dcObject
@@ -89,13 +87,12 @@ o: ${organisation}
 dc: ${dc}
 EOF
 
-    slapadd -F "$CONFIGDIR" -l /tmp/base.ldif
-    rm -f /tmp/base.ldif
-
     for f in /docker-entrypoint-initdb.d/*.ldif; do
         [ -f "$f" ] || continue
         echo "Loading LDIF: $f"
-        slapadd -F "$CONFIGDIR" -l "$f"
+        ldapadd -x -H ldap://127.0.0.1:3890/ \
+            -D "cn=${LDAP_ADMIN_USERNAME:-admin},${root_dn}" \
+            -w "$admin_password" -f "$f" || true
     done
 
     for f in /docker-entrypoint-initdb.d/*.sh; do
@@ -103,6 +100,11 @@ EOF
         echo "Running init script: $f"
         . "$f"
     done
+
+    # Stop temporary slapd and wait for socket release
+    kill "$pid"
+    wait "$pid" 2>/dev/null || true
+    sleep 1
 }
 
 if [ "$1" = "slapd" ]; then

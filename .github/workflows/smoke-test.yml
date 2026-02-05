@@ -44,7 +44,7 @@ jobs:
             test: |
               docker run -d --name test -p 6379:6379 -p 16379:16379 ${IMAGE}
               sleep 5
-              docker exec test redis-cli CLUSTER INFO | grep -q cluster_enabled:1
+              docker exec test redis-cli CLUSTER INFO | tr -d '\r' | grep -q cluster_enabled:1
 
           - image: postgresql
             test: |

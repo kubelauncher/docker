@@ -2,9 +2,9 @@
 set -e
 
 KAFKA_HOME="/opt/kafka"
-LOG_DIRS="${KAFKA_LOG_DIRS:-/data/kafka/data}"
 
 setup_kraft() {
+    local log_dirs="${KAFKA_LOG_DIRS:-/data/kafka/data}"
     local cluster_id="${KAFKA_CLUSTER_ID}"
     if [ -z "$cluster_id" ]; then
         if [ ! -f "/data/kafka/.cluster_id" ]; then
@@ -35,7 +35,7 @@ advertised.listeners=${advertised}
 controller.listener.names=CONTROLLER
 inter.broker.listener.name=PLAINTEXT
 listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-log.dirs=${LOG_DIRS}
+log.dirs=${log_dirs}
 num.partitions=1
 offsets.topic.replication.factor=1
 transaction.state.log.replication.factor=1
@@ -44,7 +44,16 @@ log.retention.hours=168
 log.segment.bytes=1073741824
 EOF
 
-    if [ ! -f "${LOG_DIRS}/meta.properties" ]; then
+    # Unset ALL KAFKA_* env vars to prevent Kafka 3.9+ from reading them
+    # as config property overrides. Keep only JVM-related vars.
+    for var in $(env | grep ^KAFKA_ | cut -d= -f1); do
+        case "$var" in
+            KAFKA_HEAP_OPTS|KAFKA_OPTS|KAFKA_GC_LOG_OPTS|KAFKA_JMX_OPTS|KAFKA_LOG4J_OPTS|KAFKA_JVM_PERFORMANCE_OPTS|KAFKA_DEBUG) ;;
+            *) unset "$var" ;;
+        esac
+    done
+
+    if [ ! -f "${log_dirs}/meta.properties" ]; then
         "$KAFKA_HOME/bin/kafka-storage.sh" format \
             -t "$cluster_id" \
             -c "$KAFKA_HOME/config/server.properties" \
@@ -53,9 +62,8 @@ EOF
 }
 
 if [ "$1" = "kafka" ]; then
-    unset KAFKA_LISTENERS KAFKA_ADVERTISED_LISTENERS
     setup_kraft
-    exec "$KAFKA_HOME/bin/kafka-server-start.sh" "$KAFKA_HOME/config/server.properties" $KAFKA_EXTRA_FLAGS
+    exec "$KAFKA_HOME/bin/kafka-server-start.sh" "$KAFKA_HOME/config/server.properties"
 fi
 
 exec "$@"

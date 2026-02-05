@@ -19,6 +19,7 @@ init_database() {
     mysqld \
         --datadir="$DATADIR" \
         --skip-networking \
+        --skip-grant-tables \
         --socket=/run/mysqld/mysqld.sock &
     local pid=$!
 
@@ -28,6 +29,8 @@ init_database() {
         fi
         sleep 1
     done
+
+    mysql --socket=/run/mysqld/mysqld.sock -u root -e "FLUSH PRIVILEGES;"
 
     if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
         mysql --socket=/run/mysqld/mysqld.sock -u root <<EOSQL
