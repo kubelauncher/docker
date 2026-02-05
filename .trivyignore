@@ -1,0 +1,21 @@
+# Trivy ignore file for known false positives
+# https://aquasecurity.github.io/trivy/latest/docs/configuration/filtering/
+
+# MySQL auto-generated SSL certificates (created during mysql initialization)
+/var/lib/mysql/server-key.pem
+/var/lib/mysql/private_key.pem
+/var/lib/mysql/client-key.pem
+/var/lib/mysql/ca-key.pem
+
+# Ubuntu default snakeoil SSL certificate
+/etc/ssl/private/ssl-cert-snakeoil.key
+
+# DS026: No HEALTHCHECK - We use Kubernetes probes instead of Docker HEALTHCHECK
+DS026
+
+# DS013: RUN cd - Used in multi-stage builder, not a security issue
+DS013
+
+# DS031: Secrets in ENV - False positive, we removed PASSWORD defaults
+# These are detected in entrypoint scripts reading env vars, not exposing secrets
+DS031
