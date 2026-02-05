@@ -45,9 +45,7 @@ ENV MONGODB_PORT="27017" \
     MONGODB_LOG_DIR="/data/mongodb/logs" \
     MONGODB_DATABASE="" \
     MONGODB_USERNAME="" \
-    MONGODB_PASSWORD="" \
     MONGODB_ROOT_USERNAME="root" \
-    MONGODB_ROOT_PASSWORD="" \
     MONGODB_EXTRA_FLAGS=""
 
 VOLUME ["/data/mongodb", "/docker-entrypoint-initdb.d"]

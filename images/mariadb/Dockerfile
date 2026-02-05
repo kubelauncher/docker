@@ -45,8 +45,6 @@ ENV MARIADB_PORT_NUMBER="3306" \
     MARIADB_DATA_DIR="/data/mariadb/data" \
     MARIADB_DATABASE="" \
     MARIADB_USER="" \
-    MARIADB_PASSWORD="" \
-    MARIADB_ROOT_PASSWORD="" \
     MARIADB_EXTRA_FLAGS=""
 
 VOLUME ["/data/mariadb", "/docker-entrypoint-initdb.d"]
