@@ -96,7 +96,7 @@
       "customType": "regex",
       "fileMatch": ["images/mongodb/Dockerfile$"],
       "matchStrings": ["ARG MONGODB_VERSION=(?<currentValue>\\S+)"],
-      "depNameTemplate": "mongodb/mongo",
+      "depNameTemplate": "mongo",
       "datasourceTemplate": "docker",
       "extractVersionTemplate": "^(?<version>.+)$"
     },
@@ -182,7 +182,7 @@
       "automerge": true
     },
     {
-      "matchPackageNames": ["mongodb/mongo"],
+      "matchPackageNames": ["mongo"],
       "groupName": "mongodb",
       "automerge": true
     },
