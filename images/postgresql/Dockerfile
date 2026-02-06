@@ -4,8 +4,10 @@ FROM ubuntu:24.04@sha256:cd1dba651b3080c3686ecf4e3c4220f026b521fb76978881737d24f
 ARG POSTGRESQL_VERSION=17
 
 LABEL org.opencontainers.image.title="postgresql" \
-      org.opencontainers.image.description="PostgreSQL relational database" \
-      org.opencontainers.image.source="https://github.com/kubelauncher/docker"
+      org.opencontainers.image.description="postgresql packaged with love by KubeLauncher" \
+      org.opencontainers.image.vendor="KubeLauncher" \
+      org.opencontainers.image.source="https://github.com/kubelauncher/docker" \
+      org.opencontainers.image.documentation="https://github.com/kubelauncher/docker/blob/main/images/postgresql/README.md"
 
 ENV DEBIAN_FRONTEND=noninteractive
 

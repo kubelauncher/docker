@@ -6,9 +6,11 @@ ARG YQ_VERSION=4.52.2
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.title="kubectl" \
-      org.opencontainers.image.description="Kubernetes CLI tool" \
+      org.opencontainers.image.description="kubectl packaged with love by KubeLauncher" \
+      org.opencontainers.image.vendor="KubeLauncher" \
       org.opencontainers.image.version="${KUBECTL_VERSION}" \
-      org.opencontainers.image.source="https://github.com/kubelauncher/docker"
+      org.opencontainers.image.source="https://github.com/kubelauncher/docker" \
+      org.opencontainers.image.documentation="https://github.com/kubelauncher/docker/blob/main/images/kubectl/README.md"
 
 ENV DEBIAN_FRONTEND=noninteractive
 

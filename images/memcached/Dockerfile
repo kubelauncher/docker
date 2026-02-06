@@ -21,9 +21,11 @@ FROM ubuntu:24.04@sha256:cd1dba651b3080c3686ecf4e3c4220f026b521fb76978881737d24f
 ARG MEMCACHED_VERSION=1.6.34
 
 LABEL org.opencontainers.image.title="memcached" \
-      org.opencontainers.image.description="Memcached distributed memory caching system" \
+      org.opencontainers.image.description="memcached packaged with love by KubeLauncher" \
+      org.opencontainers.image.vendor="KubeLauncher" \
       org.opencontainers.image.version="${MEMCACHED_VERSION}" \
-      org.opencontainers.image.source="https://github.com/kubelauncher/docker"
+      org.opencontainers.image.source="https://github.com/kubelauncher/docker" \
+      org.opencontainers.image.documentation="https://github.com/kubelauncher/docker/blob/main/images/memcached/README.md"
 
 ENV DEBIAN_FRONTEND=noninteractive
 

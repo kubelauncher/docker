@@ -4,9 +4,11 @@ FROM ubuntu:24.04@sha256:cd1dba651b3080c3686ecf4e3c4220f026b521fb76978881737d24f
 ARG MONGODB_VERSION=8.0
 
 LABEL org.opencontainers.image.title="mongodb" \
-      org.opencontainers.image.description="MongoDB document database" \
+      org.opencontainers.image.description="mongodb packaged with love by KubeLauncher" \
+      org.opencontainers.image.vendor="KubeLauncher" \
       org.opencontainers.image.version="${MONGODB_VERSION}" \
-      org.opencontainers.image.source="https://github.com/kubelauncher/docker"
+      org.opencontainers.image.source="https://github.com/kubelauncher/docker" \
+      org.opencontainers.image.documentation="https://github.com/kubelauncher/docker/blob/main/images/mongodb/README.md"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
