@@ -2,8 +2,13 @@
 set -e
 
 setup_rabbitmq() {
+    # Ensure HOME is set (may not be in Kubernetes)
+    export HOME="${HOME:-/data/rabbitmq}"
     export RABBITMQ_MNESIA_BASE="${RABBITMQ_DATA_DIR:-/data/rabbitmq/data}"
     export RABBITMQ_LOG_BASE="${RABBITMQ_LOG_DIR:-/data/rabbitmq/logs}"
+
+    # Create required directories
+    mkdir -p "$RABBITMQ_MNESIA_BASE" "$RABBITMQ_LOG_BASE"
 
     local conf="/etc/rabbitmq/rabbitmq.conf"
     # Skip config generation if file exists and is read-only (ConfigMap mount)
