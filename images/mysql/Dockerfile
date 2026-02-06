@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:24.04@sha256:cd1dba651b3080c3686ecf4e3c4220f026b521fb76978881737d24f200828b2b
 
-ARG MYSQL_VERSION=8.0
+ARG MYSQL_VERSION=8.0.0
 
 LABEL org.opencontainers.image.title="mysql" \
       org.opencontainers.image.description="mysql packaged with love by KubeLauncher" \
