@@ -5,9 +5,11 @@ ARG KAFKA_VERSION=3.9.0
 ARG SCALA_VERSION=2.13
 
 LABEL org.opencontainers.image.title="kafka" \
-      org.opencontainers.image.description="Apache Kafka distributed event streaming platform" \
+      org.opencontainers.image.description="kafka packaged with love by KubeLauncher" \
+      org.opencontainers.image.vendor="KubeLauncher" \
       org.opencontainers.image.version="${KAFKA_VERSION}" \
-      org.opencontainers.image.source="https://github.com/kubelauncher/docker"
+      org.opencontainers.image.source="https://github.com/kubelauncher/docker" \
+      org.opencontainers.image.documentation="https://github.com/kubelauncher/docker/blob/main/images/kafka/README.md"
 
 ENV DEBIAN_FRONTEND=noninteractive
 

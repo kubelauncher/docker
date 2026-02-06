@@ -4,9 +4,11 @@ FROM ubuntu:24.04@sha256:cd1dba651b3080c3686ecf4e3c4220f026b521fb76978881737d24f
 ARG RABBITMQ_VERSION=4.2.3
 
 LABEL org.opencontainers.image.title="rabbitmq" \
-      org.opencontainers.image.description="RabbitMQ message broker" \
+      org.opencontainers.image.description="rabbitmq packaged with love by KubeLauncher" \
+      org.opencontainers.image.vendor="KubeLauncher" \
       org.opencontainers.image.version="${RABBITMQ_VERSION}" \
-      org.opencontainers.image.source="https://github.com/kubelauncher/docker"
+      org.opencontainers.image.source="https://github.com/kubelauncher/docker" \
+      org.opencontainers.image.documentation="https://github.com/kubelauncher/docker/blob/main/images/rabbitmq/README.md"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
