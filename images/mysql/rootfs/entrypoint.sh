@@ -32,27 +32,52 @@ init_database() {
         if [ -d "$DATADIR" ] && [ -z "$(ls -A "$DATADIR")" ]; then
             rmdir "$DATADIR"
         fi
-        mysqld --initialize-insecure --datadir="$DATADIR"
+        mysqld --initialize-insecure --datadir="$DATADIR" --log-error=/var/log/mysql/error.log 2>&1
+        echo "Initialization complete. Checking error log:"
+        cat /var/log/mysql/error.log 2>/dev/null | tail -20 || true
     else
         echo "MySQL system tables exist, skipping base initialization."
     fi
 
     # Configure users and databases
     echo "Configuring MySQL users and databases..."
+    echo "Starting mysqld for configuration..."
 
     mysqld \
         --datadir="$DATADIR" \
         --skip-networking \
         --skip-grant-tables \
-        --socket=/var/run/mysqld/mysqld.sock &
+        --socket=/var/run/mysqld/mysqld.sock \
+        --log-error=/var/log/mysql/error.log \
+        2>&1 &
     local pid=$!
 
-    for i in $(seq 1 30); do
+    echo "Waiting for mysqld to be ready (pid=$pid)..."
+    local ready=false
+    for i in $(seq 1 60); do
+        # Check if process is still running
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo "ERROR: mysqld process died (was pid=$pid)"
+            echo "Error log contents:"
+            cat /var/log/mysql/error.log 2>/dev/null || true
+            exit 1
+        fi
         if mysql --socket=/var/run/mysqld/mysqld.sock -u root -e "SELECT 1" &>/dev/null; then
+            echo "mysqld is ready after $i seconds"
+            ready=true
             break
         fi
         sleep 1
     done
+
+    if [ "$ready" != "true" ]; then
+        echo "ERROR: mysqld failed to become ready within 60 seconds"
+        echo "Checking if mysqld process is running..."
+        ps aux | grep mysqld || true
+        echo "Checking error log..."
+        cat /var/log/mysql/error.log 2>/dev/null || true
+        exit 1
+    fi
 
     # Build all SQL statements to execute in a single session
     local sql="FLUSH PRIVILEGES;"
