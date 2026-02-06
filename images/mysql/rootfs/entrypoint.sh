@@ -5,11 +5,11 @@ DATADIR="${MYSQL_DATA_DIR:-/data/mysql/data}"
 
 init_database() {
     # Create runtime and log directories
-    mkdir -p /run/mysqld
+    mkdir -p /run/mysqld /var/run/mysqld
     mkdir -p "$(dirname "$DATADIR")"
     mkdir -p /var/log/mysql
     touch /var/log/mysql/error.log
-    chown -R mysql:mysql /var/log/mysql || true
+    chown -R mysql:mysql /var/log/mysql /run/mysqld /var/run/mysqld || true
 
     # Check if system tables exist (base initialization done)
     local needs_init=true
@@ -44,11 +44,11 @@ init_database() {
         --datadir="$DATADIR" \
         --skip-networking \
         --skip-grant-tables \
-        --socket=/run/mysqld/mysqld.sock &
+        --socket=/var/run/mysqld/mysqld.sock &
     local pid=$!
 
     for i in $(seq 1 30); do
-        if mysql --socket=/run/mysqld/mysqld.sock -u root -e "SELECT 1" &>/dev/null; then
+        if mysql --socket=/var/run/mysqld/mysqld.sock -u root -e "SELECT 1" &>/dev/null; then
             break
         fi
         sleep 1
@@ -81,7 +81,7 @@ GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';"
     sql="${sql}
 FLUSH PRIVILEGES;"
 
-    mysql --socket=/run/mysqld/mysqld.sock -u root <<< "$sql"
+    mysql --socket=/var/run/mysqld/mysqld.sock -u root <<< "$sql"
 
     run_init_scripts
 
@@ -105,18 +105,18 @@ run_init_scripts() {
                     echo "Running SQL file: $f"
                     local db="${MYSQL_DATABASE:-mysql}"
                     if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
-                        mysql --socket=/run/mysqld/mysqld.sock -u root -p"${MYSQL_ROOT_PASSWORD}" -D "$db" < "$f"
+                        mysql --socket=/var/run/mysqld/mysqld.sock -u root -p"${MYSQL_ROOT_PASSWORD}" -D "$db" < "$f"
                     else
-                        mysql --socket=/run/mysqld/mysqld.sock -u root -D "$db" < "$f"
+                        mysql --socket=/var/run/mysqld/mysqld.sock -u root -D "$db" < "$f"
                     fi
                     ;;
                 *.sql.gz)
                     echo "Running compressed SQL file: $f"
                     local db="${MYSQL_DATABASE:-mysql}"
                     if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
-                        gunzip -c "$f" | mysql --socket=/run/mysqld/mysqld.sock -u root -p"${MYSQL_ROOT_PASSWORD}" -D "$db"
+                        gunzip -c "$f" | mysql --socket=/var/run/mysqld/mysqld.sock -u root -p"${MYSQL_ROOT_PASSWORD}" -D "$db"
                     else
-                        gunzip -c "$f" | mysql --socket=/run/mysqld/mysqld.sock -u root -D "$db"
+                        gunzip -c "$f" | mysql --socket=/var/run/mysqld/mysqld.sock -u root -D "$db"
                     fi
                     ;;
             esac
@@ -131,7 +131,7 @@ if [ "$1" = "mysqld" ]; then
         --datadir="$DATADIR" \
         --port="${MYSQL_PORT_NUMBER:-3306}" \
         --bind-address=0.0.0.0 \
-        --socket=/run/mysqld/mysqld.sock \
+        --socket=/var/run/mysqld/mysqld.sock \
         $MYSQL_EXTRA_FLAGS \
         "$@"
 fi
