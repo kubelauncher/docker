@@ -14,37 +14,17 @@ init_database() {
         return
     fi
 
-    # Debug: show current user and permissions
-    echo "=== DEBUG: User and permissions ==="
-    echo "Running as: $(id)"
-    echo "DATADIR: $DATADIR"
-    echo "Parent dir contents:"
-    ls -la "$(dirname "$DATADIR")"
-    if [ -d "$DATADIR" ]; then
-        echo "Data dir contents:"
-        ls -la "$DATADIR"
-    fi
-    echo "=== END DEBUG ==="
-
     # If data directory has MySQL data, skip initialization
     if [ -n "$(ls -A "$DATADIR" 2>/dev/null)" ]; then
         echo "Data directory already has content, skipping initialization"
         return 0
     fi
 
-    # For mysqld --initialize to work, the directory must either:
-    # - Not exist (mysqld creates it), OR
-    # - Exist and be empty
-    # Remove empty directory so mysqld can create it fresh
-    if [ -d "$DATADIR" ]; then
-        echo "Removing empty data directory for mysqld --initialize"
-        rmdir "$DATADIR" 2>/dev/null || true
-    fi
+    # Ensure data directory exists (may be created by K8s init container)
+    mkdir -p "$DATADIR"
 
     echo "Initializing MySQL database..."
-
-    mysqld --initialize-insecure \
-        --datadir="$DATADIR"
+    mysqld --initialize-insecure --datadir="$DATADIR"
 
     mysqld \
         --datadir="$DATADIR" \
