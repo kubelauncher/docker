@@ -18,14 +18,18 @@ init_database() {
     echo "=== DEBUG: User and permissions ==="
     echo "Running as: $(id)"
     echo "DATADIR: $DATADIR"
-    echo "Parent dir: $(dirname "$DATADIR")"
+    echo "Parent dir contents:"
     ls -la "$(dirname "$DATADIR")"
-    echo "=== END DEBUG ==="
 
-    # Remove data dir if empty - mysqld --initialize requires it to not exist
-    if [ -d "$DATADIR" ] && [ -z "$(ls -A "$DATADIR" 2>/dev/null)" ]; then
-        rmdir "$DATADIR" 2>/dev/null || true
+    # Create data directory since mysqld may not be able to create it
+    # (fsGroup/securityContext restrictions in K8s)
+    if [ ! -d "$DATADIR" ]; then
+        echo "Creating data directory: $DATADIR"
+        mkdir -p "$DATADIR"
     fi
+    echo "Data dir contents:"
+    ls -la "$DATADIR"
+    echo "=== END DEBUG ==="
 
     echo "Initializing MySQL database..."
 
