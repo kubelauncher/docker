@@ -47,6 +47,13 @@ EOF
 
 if [ "$1" = "rabbitmq-server" ]; then
     setup_rabbitmq
+    echo "HOME=$HOME"
+    echo "RABBITMQ_MNESIA_BASE=$RABBITMQ_MNESIA_BASE"
+    echo "RABBITMQ_LOG_BASE=$RABBITMQ_LOG_BASE"
+    echo "RABBITMQ_NODE_NAME=${RABBITMQ_NODE_NAME:-rabbit@localhost}"
+    ls -la "$HOME/.erlang.cookie" 2>&1 || echo "No erlang.cookie found"
+    ls -la "$RABBITMQ_MNESIA_BASE" 2>&1 || echo "MNESIA_BASE not found"
+    ls -la /etc/rabbitmq/ 2>&1 || echo "No /etc/rabbitmq"
     echo "Starting RabbitMQ server..."
 fi
 
