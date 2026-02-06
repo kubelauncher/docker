@@ -2,16 +2,29 @@
 set -e
 
 DATADIR="${MYSQL_DATA_DIR:-/data/mysql/data}"
-
 LOGDIR="${MYSQL_LOG_DIR:-/data/mysql/logs}"
 
 init_database() {
-    # Create runtime and log directories
-    mkdir -p /run/mysqld /var/run/mysqld
-    mkdir -p "$(dirname "$DATADIR")"
-    mkdir -p "$LOGDIR"
-    touch "$LOGDIR/error.log"
-    chown -R mysql:mysql "$LOGDIR" /run/mysqld /var/run/mysqld || true
+    # Create runtime directories
+    mkdir -p /run/mysqld /var/run/mysqld 2>/dev/null || true
+
+    # Test if we can write to the data directory parent
+    local data_parent="$(dirname "$DATADIR")"
+    mkdir -p "$data_parent" 2>/dev/null || true
+
+    if ! touch "$data_parent/.write-test" 2>/dev/null; then
+        echo "WARNING: Cannot write to $data_parent, using /tmp for data"
+        DATADIR="/tmp/mysql-data"
+        LOGDIR="/tmp/mysql-logs"
+        mkdir -p "$DATADIR" "$LOGDIR"
+    else
+        rm -f "$data_parent/.write-test"
+        mkdir -p "$LOGDIR" 2>/dev/null || LOGDIR="/tmp/mysql-logs"
+        mkdir -p "$LOGDIR"
+    fi
+
+    touch "$LOGDIR/error.log" 2>/dev/null || true
+    chown -R mysql:mysql "$LOGDIR" /run/mysqld /var/run/mysqld 2>/dev/null || true
 
     # Check if system tables exist (base initialization done)
     local needs_init=true
