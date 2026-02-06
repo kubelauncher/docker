@@ -4,114 +4,172 @@
     "config:recommended",
     "schedule:daily"
   ],
-  "labels": ["dependencies"],
+  "labels": [
+    "dependencies"
+  ],
   "automerge": true,
   "automergeType": "pr",
   "platformAutomerge": true,
   "prConcurrentLimit": 5,
   "rebaseWhen": "behind-base-branch",
-  "schedule": ["after 5am and before 8am every weekday"],
+  "schedule": [
+    "after 5am and before 8am every weekday"
+  ],
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["images/redis/Dockerfile$", "images/redis-sentinel/Dockerfile$", "images/redis-cluster/Dockerfile$"],
-      "matchStrings": ["ARG REDIS_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/redis/Dockerfile$/",
+        "/images/redis-sentinel/Dockerfile$/",
+        "/images/redis-cluster/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG REDIS_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "redis/redis",
       "datasourceTemplate": "github-tags",
       "extractVersionTemplate": "^(?<version>.+)$"
     },
     {
       "customType": "regex",
-      "fileMatch": ["images/kubectl/Dockerfile$"],
-      "matchStrings": ["ARG KUBECTL_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/kubectl/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG KUBECTL_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "kubernetes/kubernetes",
       "datasourceTemplate": "github-tags",
       "extractVersionTemplate": "^v(?<version>.+)$"
     },
     {
       "customType": "regex",
-      "fileMatch": ["images/kubectl/Dockerfile$"],
-      "matchStrings": ["ARG YQ_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/kubectl/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG YQ_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "mikefarah/yq",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.+)$"
     },
     {
       "customType": "regex",
-      "fileMatch": ["images/rabbitmq/Dockerfile$"],
-      "matchStrings": ["ARG RABBITMQ_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/rabbitmq/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG RABBITMQ_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "rabbitmq/rabbitmq-server",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.+)$"
     },
     {
       "customType": "regex",
-      "fileMatch": ["images/memcached/Dockerfile$"],
-      "matchStrings": ["ARG MEMCACHED_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/memcached/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG MEMCACHED_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "memcached/memcached",
       "datasourceTemplate": "github-tags",
       "extractVersionTemplate": "^(?<version>.+)$"
     },
     {
       "customType": "regex",
-      "fileMatch": ["images/kafka/Dockerfile$"],
-      "matchStrings": ["ARG KAFKA_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/kafka/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG KAFKA_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "apache/kafka",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^(?<version>.+)$"
     },
     {
       "customType": "regex",
-      "fileMatch": ["images/zookeeper/Dockerfile$"],
-      "matchStrings": ["ARG ZOOKEEPER_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/zookeeper/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG ZOOKEEPER_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "apache/zookeeper",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^release-(?<version>.+)$"
     },
     {
       "customType": "regex",
-      "fileMatch": ["images/cassandra/Dockerfile$"],
-      "matchStrings": ["ARG CASSANDRA_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/cassandra/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG CASSANDRA_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "apache/cassandra",
       "datasourceTemplate": "github-tags",
       "extractVersionTemplate": "^cassandra-(?<version>.+)$"
     },
     {
       "customType": "regex",
-      "fileMatch": ["images/keycloak/Dockerfile$"],
-      "matchStrings": ["ARG KEYCLOAK_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/keycloak/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG KEYCLOAK_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "keycloak/keycloak",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^(?<version>.+)$"
     },
     {
       "customType": "regex",
-      "fileMatch": ["images/mysql/Dockerfile$"],
-      "matchStrings": ["ARG MYSQL_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/mysql/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG MYSQL_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "mysql/mysql-server",
       "datasourceTemplate": "docker",
       "extractVersionTemplate": "^(?<version>.+)$"
     },
     {
       "customType": "regex",
-      "fileMatch": ["images/mongodb/Dockerfile$"],
-      "matchStrings": ["ARG MONGODB_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/mongodb/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG MONGODB_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "mongo",
       "datasourceTemplate": "docker",
       "extractVersionTemplate": "^(?<version>.+)$"
     },
     {
       "customType": "regex",
-      "fileMatch": ["images/mariadb/Dockerfile$"],
-      "matchStrings": ["ARG MARIADB_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/mariadb/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG MARIADB_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "mariadb",
       "datasourceTemplate": "docker",
       "extractVersionTemplate": "^(?<version>.+)$"
     },
     {
       "customType": "regex",
-      "fileMatch": ["images/openldap/Dockerfile$"],
-      "matchStrings": ["ARG OPENLDAP_VERSION=(?<currentValue>\\S+)"],
+      "managerFilePatterns": [
+        "/images/openldap/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG OPENLDAP_VERSION=(?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "openldap/openldap",
       "datasourceTemplate": "github-tags",
       "extractVersionTemplate": "^OPENLDAP_REL_ENG_(?<version>[\\d_]+)$",
@@ -120,79 +178,109 @@
   ],
   "packageRules": [
     {
-      "matchPackageNames": ["ubuntu"],
-      "matchManagers": ["dockerfile"],
+      "matchPackageNames": [
+        "ubuntu"
+      ],
+      "matchManagers": [
+        "dockerfile"
+      ],
       "groupName": "ubuntu base image",
       "automerge": true
     },
     {
-      "matchPackageNames": ["redis/redis"],
+      "matchPackageNames": [
+        "redis/redis"
+      ],
       "groupName": "redis",
       "automerge": true
     },
     {
-      "matchPackageNames": ["kubernetes/kubernetes"],
+      "matchPackageNames": [
+        "kubernetes/kubernetes"
+      ],
       "allowedVersions": "!/alpha|beta|rc/",
       "groupName": "kubectl",
       "automerge": true
     },
     {
-      "matchPackageNames": ["mikefarah/yq"],
+      "matchPackageNames": [
+        "mikefarah/yq"
+      ],
       "groupName": "yq",
       "automerge": true
     },
     {
-      "matchPackageNames": ["rabbitmq/rabbitmq-server"],
+      "matchPackageNames": [
+        "rabbitmq/rabbitmq-server"
+      ],
       "allowedVersions": "!/alpha|beta|rc/",
       "groupName": "rabbitmq",
       "automerge": true
     },
     {
-      "matchPackageNames": ["memcached/memcached"],
+      "matchPackageNames": [
+        "memcached/memcached"
+      ],
       "groupName": "memcached",
       "automerge": true
     },
     {
-      "matchPackageNames": ["apache/kafka"],
+      "matchPackageNames": [
+        "apache/kafka"
+      ],
       "allowedVersions": "!/alpha|beta|rc/",
       "groupName": "kafka",
       "automerge": true
     },
     {
-      "matchPackageNames": ["apache/zookeeper"],
+      "matchPackageNames": [
+        "apache/zookeeper"
+      ],
       "allowedVersions": "!/alpha|beta|rc/",
       "groupName": "zookeeper",
       "automerge": true
     },
     {
-      "matchPackageNames": ["apache/cassandra"],
+      "matchPackageNames": [
+        "apache/cassandra"
+      ],
       "allowedVersions": "!/alpha|beta|rc|tent/",
       "groupName": "cassandra",
       "automerge": true
     },
     {
-      "matchPackageNames": ["keycloak/keycloak"],
+      "matchPackageNames": [
+        "keycloak/keycloak"
+      ],
       "allowedVersions": "!/alpha|beta|rc|nightly/",
       "groupName": "keycloak",
       "automerge": true
     },
     {
-      "matchPackageNames": ["mysql/mysql-server"],
+      "matchPackageNames": [
+        "mysql/mysql-server"
+      ],
       "groupName": "mysql",
       "automerge": true
     },
     {
-      "matchPackageNames": ["mongo"],
+      "matchPackageNames": [
+        "mongo"
+      ],
       "groupName": "mongodb",
       "automerge": true
     },
     {
-      "matchPackageNames": ["mariadb"],
+      "matchPackageNames": [
+        "mariadb"
+      ],
       "groupName": "mariadb",
       "automerge": true
     },
     {
-      "matchPackageNames": ["openldap/openldap"],
+      "matchPackageNames": [
+        "openldap/openldap"
+      ],
       "groupName": "openldap",
       "automerge": true
     }
