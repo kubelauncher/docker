@@ -4,27 +4,33 @@ set -e
 DATADIR="${MYSQL_DATA_DIR:-/data/mysql/data}"
 
 init_database() {
-    # Create runtime directories (PVC mount may overwrite them)
+    # Create runtime directories
     mkdir -p /run/mysqld
-    # Create parent dir - mysqld will create the data dir itself
     mkdir -p "$(dirname "$DATADIR")"
 
+    # Check if system tables exist (base initialization done)
+    local needs_init=true
+    local needs_config=true
+
     if [ -d "$DATADIR/mysql" ]; then
-        echo "MySQL data directory already initialized, skipping."
-        return
+        needs_init=false
+        # Check if we've already configured (marker file)
+        if [ -f "$DATADIR/.configured" ]; then
+            echo "MySQL already initialized and configured, skipping."
+            return
+        fi
     fi
 
-    # If data directory has MySQL data, skip initialization
-    if [ -n "$(ls -A "$DATADIR" 2>/dev/null)" ]; then
-        echo "Data directory already has content, skipping initialization"
-        return 0
+    # Do base initialization if needed
+    if [ "$needs_init" = "true" ]; then
+        echo "Initializing MySQL database..."
+        mysqld --initialize-insecure --datadir="$DATADIR"
+    else
+        echo "MySQL system tables exist, skipping base initialization."
     fi
 
-    # Ensure data directory exists (may be created by K8s init container)
-    mkdir -p "$DATADIR"
-
-    echo "Initializing MySQL database..."
-    mysqld --initialize-insecure --datadir="$DATADIR"
+    # Configure users and databases
+    echo "Configuring MySQL users and databases..."
 
     mysqld \
         --datadir="$DATADIR" \
@@ -40,10 +46,7 @@ init_database() {
         sleep 1
     done
 
-    # Build all SQL statements to execute in a single session.
-    # FLUSH PRIVILEGES is required before ALTER USER when --skip-grant-tables is active.
-    # After FLUSH PRIVILEGES, the current session keeps full access but new
-    # connections enforce auth, so everything must run in one batch.
+    # Build all SQL statements to execute in a single session
     local sql="FLUSH PRIVILEGES;"
 
     if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
@@ -73,6 +76,9 @@ FLUSH PRIVILEGES;"
     mysql --socket=/run/mysqld/mysqld.sock -u root <<< "$sql"
 
     run_init_scripts
+
+    # Mark as configured
+    touch "$DATADIR/.configured"
 
     kill "$pid"
     wait "$pid" 2>/dev/null || true
