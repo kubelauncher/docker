@@ -5,6 +5,19 @@ DATADIR="/data/openldap/data"
 CONFIGDIR="/data/openldap/config"
 RUNDIR="/data/openldap/run"
 
+# Test if we can write to the data directory
+setup_dirs() {
+    if ! mkdir -p "$DATADIR" 2>/dev/null || ! touch "$DATADIR/.write-test" 2>/dev/null; then
+        echo "WARNING: Cannot write to $DATADIR, using /tmp for data"
+        DATADIR="/tmp/openldap-data"
+        CONFIGDIR="/tmp/openldap-config"
+        RUNDIR="/tmp/openldap-run"
+    else
+        rm -f "$DATADIR/.write-test"
+    fi
+    mkdir -p "$DATADIR" "$CONFIGDIR" "$RUNDIR"
+}
+
 init_ldap() {
     # Check for a marker file to ensure init completed successfully
     if [ -f "$CONFIGDIR/.init_done" ]; then
@@ -120,7 +133,7 @@ EOF
 }
 
 if [ "$1" = "slapd" ]; then
-    mkdir -p "$RUNDIR" "$DATADIR" "$CONFIGDIR"
+    setup_dirs
     init_ldap
     shift
     echo "Starting slapd..."
