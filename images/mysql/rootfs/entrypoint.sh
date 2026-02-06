@@ -3,13 +3,15 @@ set -e
 
 DATADIR="${MYSQL_DATA_DIR:-/data/mysql/data}"
 
+LOGDIR="${MYSQL_LOG_DIR:-/data/mysql/logs}"
+
 init_database() {
     # Create runtime and log directories
     mkdir -p /run/mysqld /var/run/mysqld
     mkdir -p "$(dirname "$DATADIR")"
-    mkdir -p /var/log/mysql
-    touch /var/log/mysql/error.log
-    chown -R mysql:mysql /var/log/mysql /run/mysqld /var/run/mysqld || true
+    mkdir -p "$LOGDIR"
+    touch "$LOGDIR/error.log"
+    chown -R mysql:mysql "$LOGDIR" /run/mysqld /var/run/mysqld || true
 
     # Check if system tables exist (base initialization done)
     local needs_init=true
@@ -32,9 +34,9 @@ init_database() {
         if [ -d "$DATADIR" ] && [ -z "$(ls -A "$DATADIR")" ]; then
             rmdir "$DATADIR"
         fi
-        mysqld --initialize-insecure --datadir="$DATADIR" --log-error=/var/log/mysql/error.log 2>&1
+        mysqld --initialize-insecure --datadir="$DATADIR" --log-error=$LOGDIR/error.log 2>&1
         echo "Initialization complete. Checking error log:"
-        cat /var/log/mysql/error.log 2>/dev/null | tail -20 || true
+        cat $LOGDIR/error.log 2>/dev/null | tail -20 || true
     else
         echo "MySQL system tables exist, skipping base initialization."
     fi
@@ -48,7 +50,7 @@ init_database() {
         --skip-networking \
         --skip-grant-tables \
         --socket=/var/run/mysqld/mysqld.sock \
-        --log-error=/var/log/mysql/error.log \
+        --log-error=$LOGDIR/error.log \
         2>&1 &
     local pid=$!
 
@@ -59,7 +61,7 @@ init_database() {
         if ! kill -0 "$pid" 2>/dev/null; then
             echo "ERROR: mysqld process died (was pid=$pid)"
             echo "Error log contents:"
-            cat /var/log/mysql/error.log 2>/dev/null || true
+            cat $LOGDIR/error.log 2>/dev/null || true
             exit 1
         fi
         if mysql --socket=/var/run/mysqld/mysqld.sock -u root -e "SELECT 1" &>/dev/null; then
@@ -75,7 +77,7 @@ init_database() {
         echo "Checking if mysqld process is running..."
         ps aux | grep mysqld || true
         echo "Checking error log..."
-        cat /var/log/mysql/error.log 2>/dev/null || true
+        cat $LOGDIR/error.log 2>/dev/null || true
         exit 1
     fi
 
