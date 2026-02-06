@@ -8,20 +8,21 @@ init_database() {
     # Create runtime directories
     mkdir -p /run/mysqld /var/run/mysqld 2>/dev/null || true
 
-    # Test if we can write to the data directory parent
-    local data_parent="$(dirname "$DATADIR")"
-    mkdir -p "$data_parent" 2>/dev/null || true
-
-    if ! touch "$data_parent/.write-test" 2>/dev/null; then
-        echo "WARNING: Cannot write to $data_parent, using /tmp for data"
+    # Test if we can create and write to the data directory itself
+    # Note: mysqld --initialize requires DATADIR to NOT exist, so we test then remove it
+    if ! mkdir -p "$DATADIR" 2>/dev/null || ! touch "$DATADIR/.write-test" 2>/dev/null; then
+        echo "WARNING: Cannot write to $DATADIR, using /tmp for data"
         DATADIR="/tmp/mysql-data"
         LOGDIR="/tmp/mysql-logs"
-        mkdir -p "$DATADIR" "$LOGDIR"
     else
-        rm -f "$data_parent/.write-test"
-        mkdir -p "$LOGDIR" 2>/dev/null || LOGDIR="/tmp/mysql-logs"
-        mkdir -p "$LOGDIR"
+        rm -f "$DATADIR/.write-test"
     fi
+
+    # Create log directory (may also need fallback)
+    if ! mkdir -p "$LOGDIR" 2>/dev/null; then
+        LOGDIR="/tmp/mysql-logs"
+    fi
+    mkdir -p "$DATADIR" "$LOGDIR"
 
     touch "$LOGDIR/error.log" 2>/dev/null || true
     chown -R mysql:mysql "$LOGDIR" /run/mysqld /var/run/mysqld 2>/dev/null || true
