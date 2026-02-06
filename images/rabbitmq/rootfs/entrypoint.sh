@@ -39,12 +39,15 @@ EOF
         done
     fi
 
+    echo "Creating erlang cookie at $HOME/.erlang.cookie..."
     echo "${RABBITMQ_ERLANG_COOKIE:-$(head -c 32 /dev/urandom | base64)}" > "$HOME/.erlang.cookie"
     chmod 600 "$HOME/.erlang.cookie"
+    echo "Setup complete."
 }
 
 if [ "$1" = "rabbitmq-server" ]; then
     setup_rabbitmq
+    echo "Starting RabbitMQ server..."
 fi
 
 exec "$@"
