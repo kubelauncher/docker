@@ -14,6 +14,14 @@ init_database() {
         return
     fi
 
+    # Debug: show current user and permissions
+    echo "=== DEBUG: User and permissions ==="
+    echo "Running as: $(id)"
+    echo "DATADIR: $DATADIR"
+    echo "Parent dir: $(dirname "$DATADIR")"
+    ls -la "$(dirname "$DATADIR")"
+    echo "=== END DEBUG ==="
+
     # Remove data dir if empty - mysqld --initialize requires it to not exist
     if [ -d "$DATADIR" ] && [ -z "$(ls -A "$DATADIR" 2>/dev/null)" ]; then
         rmdir "$DATADIR" 2>/dev/null || true
