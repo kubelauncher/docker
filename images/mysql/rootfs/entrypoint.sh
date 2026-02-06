@@ -4,9 +4,18 @@ set -e
 DATADIR="${MYSQL_DATA_DIR:-/data/mysql/data}"
 
 init_database() {
+    echo "=== MySQL Entrypoint Debug ==="
+    echo "Running as user: $(id)"
+    echo "DATADIR: $DATADIR"
+    echo "Parent dir: $(dirname "$DATADIR")"
+
     # Create runtime directories
     mkdir -p /run/mysqld
     mkdir -p "$(dirname "$DATADIR")"
+
+    echo "=== Directory permissions ==="
+    ls -la "$(dirname "$DATADIR")" || true
+    ls -la "$(dirname "$(dirname "$DATADIR")")" || true
 
     # Check if system tables exist (base initialization done)
     local needs_init=true
@@ -27,9 +36,15 @@ init_database() {
         # mysqld --initialize-insecure requires datadir to NOT exist
         # Remove empty datadir if it was pre-created by init container
         if [ -d "$DATADIR" ] && [ -z "$(ls -A "$DATADIR")" ]; then
+            echo "Removing empty datadir..."
             rmdir "$DATADIR"
         fi
-        mysqld --initialize-insecure --datadir="$DATADIR"
+        echo "Running mysqld --initialize-insecure --datadir=$DATADIR"
+        mysqld --initialize-insecure --datadir="$DATADIR" 2>&1 || {
+            echo "=== mysqld failed, checking permissions ==="
+            ls -la "$(dirname "$DATADIR")"
+            ls -la "$DATADIR" || true
+        }
     else
         echo "MySQL system tables exist, skipping base initialization."
     fi
