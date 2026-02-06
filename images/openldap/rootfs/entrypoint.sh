@@ -110,7 +110,7 @@ EOF
     done
 
     # Stop temporary slapd and wait for socket release
-    kill "$pid"
+    kill "$pid" 2>/dev/null || true
     wait "$pid" 2>/dev/null || true
     sleep 1
 
