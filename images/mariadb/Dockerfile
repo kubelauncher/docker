@@ -4,9 +4,11 @@ FROM ubuntu:24.04@sha256:cd1dba651b3080c3686ecf4e3c4220f026b521fb76978881737d24f
 ARG MARIADB_VERSION=11.4.5
 
 LABEL org.opencontainers.image.title="mariadb" \
-      org.opencontainers.image.description="MariaDB relational database" \
+      org.opencontainers.image.description="mariadb packaged with love by KubeLauncher" \
+      org.opencontainers.image.vendor="KubeLauncher" \
       org.opencontainers.image.version="${MARIADB_VERSION}" \
-      org.opencontainers.image.source="https://github.com/kubelauncher/docker"
+      org.opencontainers.image.source="https://github.com/kubelauncher/docker" \
+      org.opencontainers.image.documentation="https://github.com/kubelauncher/docker/blob/main/images/mariadb/README.md"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
