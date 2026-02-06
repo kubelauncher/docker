@@ -17,7 +17,7 @@ jobs:
   check-base-image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Check Ubuntu 24.04 updates
         run: |
@@ -131,7 +131,7 @@ jobs:
             arg: OPENLDAP_VERSION
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Get current version from Dockerfile
         id: current
