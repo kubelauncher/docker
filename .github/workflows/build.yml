@@ -74,6 +74,15 @@ jobs:
         run: |
           DOCKERFILE="images/${{ matrix.image }}/Dockerfile"
           VERSION=$(grep -oP 'ARG \w+_VERSION=\K[^\s]+' "$DOCKERFILE" | head -1)
+
+          # Normalize to semver (x.y.z format)
+          DOTS=$(echo "$VERSION" | tr -cd '.' | wc -c)
+          if [ "$DOTS" -eq 0 ]; then
+            VERSION="${VERSION}.0.0"  # 17 → 17.0.0
+          elif [ "$DOTS" -eq 1 ]; then
+            VERSION="${VERSION}.0"    # 8.0 → 8.0.0
+          fi
+
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           MAJOR=$(echo "$VERSION" | cut -d. -f1)
           MINOR=$(echo "$VERSION" | cut -d. -f1-2)
