@@ -24,6 +24,11 @@ init_database() {
     # Do base initialization if needed
     if [ "$needs_init" = "true" ]; then
         echo "Initializing MySQL database..."
+        # mysqld --initialize-insecure requires datadir to NOT exist
+        # Remove empty datadir if it was pre-created by init container
+        if [ -d "$DATADIR" ] && [ -z "$(ls -A "$DATADIR")" ]; then
+            rmdir "$DATADIR"
+        fi
         mysqld --initialize-insecure --datadir="$DATADIR"
     else
         echo "MySQL system tables exist, skipping base initialization."
