@@ -6,21 +6,17 @@ DATADIR="${MYSQL_DATA_DIR:-/data/mysql/data}"
 init_database() {
     # Create runtime directories (PVC mount may overwrite them)
     mkdir -p /run/mysqld
-    # Create parent dir only - MySQL creates the data dir itself
-    mkdir -p "$(dirname "$DATADIR")"
+    # Ensure data directory exists with correct permissions
+    mkdir -p "$DATADIR"
 
     if [ -d "$DATADIR/mysql" ]; then
         echo "MySQL data directory already initialized, skipping."
         return
     fi
 
-    # Remove empty data dir if it exists (MySQL needs it to not exist)
-    if [ -d "$DATADIR" ] && [ -z "$(ls -A "$DATADIR")" ]; then
-        rmdir "$DATADIR"
-    fi
-
     echo "Initializing MySQL database..."
 
+    # MySQL 8.0 --initialize-insecure works with empty directory
     mysqld --initialize-insecure \
         --datadir="$DATADIR"
 
