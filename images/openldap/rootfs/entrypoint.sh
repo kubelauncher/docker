@@ -123,7 +123,8 @@ if [ "$1" = "slapd" ]; then
     mkdir -p "$RUNDIR" "$DATADIR" "$CONFIGDIR"
     init_ldap
     shift
-    exec slapd -F "$CONFIGDIR" -h "ldap://0.0.0.0:${LDAP_PORT:-389}/" $LDAP_EXTRA_ARGS "$@"
+    # -d 0 runs slapd in foreground mode (required for Docker)
+    exec slapd -d 0 -F "$CONFIGDIR" -h "ldap://0.0.0.0:${LDAP_PORT:-389}/" $LDAP_EXTRA_ARGS "$@"
 fi
 
 exec "$@"
