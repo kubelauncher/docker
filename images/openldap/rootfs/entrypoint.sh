@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-DATADIR="/data/openldap/data"
-CONFIGDIR="/data/openldap/config"
-RUNDIR="/data/openldap/run"
+DATADIR="${LDAP_DATA_DIR:-/data/openldap/data}"
+CONFIGDIR="${LDAP_CONFIG_DIR:-/data/openldap/config}"
+RUNDIR="${LDAP_RUN_DIR:-/data/openldap/run}"
 
 # Test if we can write to the data directory
 setup_dirs() {
