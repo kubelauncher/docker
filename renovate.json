@@ -9,7 +9,8 @@
   "automerge": true,
   "automergeType": "pr",
   "platformAutomerge": true,
-  "dependencyDashboard": false,
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": false,
   "prConcurrentLimit": 5,
   "rebaseWhen": "behind-base-branch",
   "schedule": [
