@@ -75,6 +75,9 @@ jobs:
           DOCKERFILE="images/${{ matrix.image }}/Dockerfile"
           VERSION=$(grep -oP 'ARG \w+_VERSION=\K[^\s]+' "$DOCKERFILE" | head -1)
 
+          # Convert underscores to dots (for openldap: 2_6_9 → 2.6.9)
+          VERSION=$(echo "$VERSION" | tr '_' '.')
+
           # Normalize to semver (x.y.z format)
           DOTS=$(echo "$VERSION" | tr -cd '.' | wc -c)
           if [ "$DOTS" -eq 0 ]; then
