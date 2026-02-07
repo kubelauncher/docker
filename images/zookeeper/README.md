@@ -2,7 +2,7 @@
 
 > Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
 
-Lightweight, production-ready Apache ZooKeeper coordination service image based on Ubuntu 24.04. Built with OpenJDK 17. Designed for Kubernetes, built for everyone.
+Production-ready, broadly compatible Apache ZooKeeper coordination service image based on Ubuntu 24.04. Built with OpenJDK 17. Designed for Kubernetes, built for everyone.
 
 ## Supported Tags
 

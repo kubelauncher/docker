@@ -2,7 +2,7 @@
 
 > Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
 
-Lightweight, production-ready MySQL relational database image based on Ubuntu 24.04. Includes MySQL server and client. Designed for Kubernetes, built for everyone.
+Production-ready, broadly compatible MySQL relational database image based on Ubuntu 24.04. Includes MySQL server and client. Designed for Kubernetes, built for everyone.
 
 ## Supported Tags
 

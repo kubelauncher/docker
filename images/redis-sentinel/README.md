@@ -2,7 +2,7 @@
 
 > Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
 
-Lightweight, production-ready Redis Sentinel image for high-availability Redis deployments, based on Ubuntu 24.04. Compiled from source with TLS support. Designed for Kubernetes, built for everyone.
+Production-ready, broadly compatible Redis Sentinel image for high-availability Redis deployments, based on Ubuntu 24.04. Compiled from source with TLS support. Designed for Kubernetes, built for everyone.
 
 ## Supported Tags
 

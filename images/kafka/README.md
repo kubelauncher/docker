@@ -2,7 +2,7 @@
 
 > Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
 
-Lightweight, production-ready Apache Kafka streaming platform image based on Ubuntu 24.04. Runs in KRaft mode (no ZooKeeper required). Built with OpenJDK 17 and Scala 2.13. Designed for Kubernetes, built for everyone.
+Production-ready, broadly compatible Apache Kafka streaming platform image based on Ubuntu 24.04. Runs in KRaft mode (no ZooKeeper required). Built with OpenJDK 17 and Scala 2.13. Designed for Kubernetes, built for everyone.
 
 ## Supported Tags
 

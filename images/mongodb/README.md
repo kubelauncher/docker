@@ -2,7 +2,7 @@
 
 > Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
 
-Lightweight, production-ready MongoDB document database image based on Ubuntu 24.04. Installed from the official MongoDB repository. Designed for Kubernetes, built for everyone.
+Production-ready, broadly compatible MongoDB document database image based on Ubuntu 24.04. Installed from the official MongoDB repository. Designed for Kubernetes, built for everyone.
 
 ## Supported Tags
 
