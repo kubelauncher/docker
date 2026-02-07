@@ -1,8 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended",
-    "docker:pinDigests"
+    "config:recommended"
   ],
   "labels": [
     "dependencies"
@@ -178,6 +177,12 @@
     }
   ],
   "packageRules": [
+    {
+      "matchPackageNames": [
+        "docker/dockerfile"
+      ],
+      "enabled": false
+    },
     {
       "matchPackageNames": [
         "ubuntu"
