@@ -1,35 +1,85 @@
-# mariadb
+# MariaDB
 
-MariaDB relational database on Ubuntu Linux.
+> Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
 
-## Quick start
+Lightweight, production-ready MariaDB relational database image based on Ubuntu 24.04. Includes MariaDB server and client from the official MariaDB Foundation repository. Designed for Kubernetes, built for everyone.
+
+## Supported Tags
+
+- `12.1.2`, `12.1`, `12`, `latest`
+
+Tags follow semantic versioning. Each push also generates a `sha-<commit>` tag for pinning to exact builds.
+
+## Quick Start
 
 ```bash
-docker run -d -p 3306:3306 \
-  -e MARIADB_ROOT_PASSWORD=admin \
-  -e MARIADB_DATABASE=mydb \
-  -e MARIADB_USER=user \
-  -e MARIADB_PASSWORD=pass \
-  ghcr.io/kubelauncher/mariadb
+docker run -d --name mariadb \
+  -e MARIADB_ROOT_PASSWORD=mysecretpassword \
+  -e MARIADB_DATABASE=myapp \
+  -e MARIADB_USER=appuser \
+  -e MARIADB_PASSWORD=apppass \
+  ghcr.io/kubelauncher/mariadb:12.1.2
 ```
 
-## Environment variables
+## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MARIADB_PORT_NUMBER` | `3306` | Listen port |
-| `MARIADB_ROOT_PASSWORD` | _(empty)_ | Password for root user |
-| `MARIADB_DATABASE` | _(empty)_ | Database to create on first run |
-| `MARIADB_USER` | _(empty)_ | User to create on first run |
-| `MARIADB_PASSWORD` | _(empty)_ | Password for the created user |
-| `MARIADB_EXTRA_FLAGS` | _(empty)_ | Extra MariaDB server flags |
+| `MARIADB_PORT_NUMBER` | `3306` | Port MariaDB listens on |
+| `MARIADB_DATA_DIR` | `/data/mariadb/data` | Path to the data directory |
+| `MARIADB_ROOT_PASSWORD` | _(none)_ | Password for the `root` user |
+| `MARIADB_DATABASE` | _(none)_ | Name of a database to create on first run |
+| `MARIADB_USER` | _(none)_ | Name of a user to create on first run |
+| `MARIADB_PASSWORD` | _(none)_ | Password for the new user |
+| `MARIADB_EXTRA_FLAGS` | _(none)_ | Additional flags passed to `mariadbd` |
 
-## Init scripts
+## Ports
 
-Mount `.sh`, `.sql`, or `.sql.gz` files in `/docker-entrypoint-initdb.d/`.
+| Port | Description |
+|------|-------------|
+| `3306` | MariaDB server |
 
-## Build details
+## Data Persistence
 
-- **Base**: Ubuntu 24.04
-- **Build**: MariaDB Foundation apt repository
-- **Data**: `/data/mariadb`
+Data is stored in `/data/mariadb/`. Mount a volume to persist data:
+
+```bash
+docker run -d -v mariadb-data:/data/mariadb ghcr.io/kubelauncher/mariadb:12.1.2
+```
+
+## Init Scripts
+
+Place `.sh`, `.sql`, or `.sql.gz` files in `/docker-entrypoint-initdb.d/` to run them on first initialization:
+
+```bash
+docker run -d \
+  -v ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro \
+  ghcr.io/kubelauncher/mariadb:12.1.2
+```
+
+## Helm Chart
+
+A production-ready Helm chart is available:
+
+```bash
+helm install my-mariadb oci://ghcr.io/kubelauncher/charts/mariadb
+```
+
+📦 [View on ArtifactHub](https://artifacthub.io/packages/helm/kubelauncher/mariadb)
+
+## Links
+
+- 📖 [Changelog](https://github.com/kubelauncher/docker/commits/main/images/mariadb)
+- 🐳 [Dockerfile](https://github.com/kubelauncher/docker/tree/main/images/mariadb)
+- ⎈ [Helm Chart Source](https://github.com/kubelauncher/charts/tree/main/charts/mariadb)
+- 🌐 [KubeLauncher](https://www.kubelauncher.com)
+
+## About KubeLauncher
+
+KubeLauncher delivers production-ready Kubernetes platforms for startups and scale-ups — in days, not months. These open-source images and Helm charts are our contribution to the community.
+
+Need a production Kubernetes platform? [Let's talk](https://cal.com/phamitservices/kubernetes-launcher).
+
+## License
+
+Apache-2.0
