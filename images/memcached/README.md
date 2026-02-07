@@ -2,7 +2,7 @@
 
 > Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
 
-Lightweight, production-ready Memcached caching system image based on Ubuntu 24.04. Compiled from source for minimal footprint. Designed for Kubernetes, built for everyone.
+Production-ready, broadly compatible Memcached caching system image based on Ubuntu 24.04. Compiled from source for minimal footprint. Designed for Kubernetes, built for everyone.
 
 ## Supported Tags
 

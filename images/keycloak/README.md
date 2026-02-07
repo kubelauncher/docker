@@ -2,7 +2,7 @@
 
 > Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
 
-Lightweight, production-ready Keycloak identity and access management image based on Ubuntu 24.04. Built with OpenJDK 21. Health and metrics endpoints enabled by default. Designed for Kubernetes, built for everyone.
+Production-ready, broadly compatible Keycloak identity and access management image based on Ubuntu 24.04. Built with OpenJDK 21. Health and metrics endpoints enabled by default. Designed for Kubernetes, built for everyone.
 
 ## Supported Tags
 
