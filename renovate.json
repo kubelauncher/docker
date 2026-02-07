@@ -13,7 +13,7 @@
   "prConcurrentLimit": 5,
   "rebaseWhen": "behind-base-branch",
   "schedule": [
-    "after 5am and before 8am every weekday"
+    "at any time"
   ],
   "customManagers": [
     {
