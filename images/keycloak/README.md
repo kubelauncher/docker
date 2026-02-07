@@ -73,7 +73,7 @@ helm install my-keycloak oci://ghcr.io/kubelauncher/charts/keycloak
 
 KubeLauncher delivers production-ready Kubernetes platforms for startups and scale-ups — in days, not months. These open-source images and Helm charts are our contribution to the community.
 
-Need a production Kubernetes platform? [Let's talk](https://cal.com/phamitservices/kubernetes-launcher).
+Need a production Kubernetes platform? [Let's talk](https://cal.com/kubelauncher).
 
 ## License
 
