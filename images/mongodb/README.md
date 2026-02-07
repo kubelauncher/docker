@@ -1,36 +1,87 @@
-# mongodb
+# MongoDB
 
-MongoDB document database on Ubuntu Linux.
+> Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
 
-## Quick start
+Lightweight, production-ready MongoDB document database image based on Ubuntu 24.04. Installed from the official MongoDB repository. Designed for Kubernetes, built for everyone.
+
+## Supported Tags
+
+- `8.2`, `8`, `latest`
+
+Tags follow semantic versioning. Each push also generates a `sha-<commit>` tag for pinning to exact builds.
+
+## Quick Start
 
 ```bash
-docker run -d -p 27017:27017 \
-  -e MONGODB_ROOT_PASSWORD=admin \
-  -e MONGODB_DATABASE=mydb \
-  -e MONGODB_USERNAME=user \
-  -e MONGODB_PASSWORD=pass \
-  ghcr.io/kubelauncher/mongodb
+docker run -d --name mongodb \
+  -e MONGODB_ROOT_PASSWORD=mysecretpassword \
+  -e MONGODB_DATABASE=myapp \
+  -e MONGODB_USERNAME=appuser \
+  -e MONGODB_PASSWORD=apppass \
+  ghcr.io/kubelauncher/mongodb:8.2
 ```
 
-## Environment variables
+## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MONGODB_PORT` | `27017` | Listen port |
-| `MONGODB_ROOT_USERNAME` | `root` | Root admin username |
-| `MONGODB_ROOT_PASSWORD` | _(empty)_ | Root admin password |
-| `MONGODB_DATABASE` | _(empty)_ | Database to create on first run |
-| `MONGODB_USERNAME` | _(empty)_ | User to create on first run |
-| `MONGODB_PASSWORD` | _(empty)_ | Password for the created user |
-| `MONGODB_EXTRA_FLAGS` | _(empty)_ | Extra mongod flags |
+| `MONGODB_PORT` | `27017` | Port MongoDB listens on |
+| `MONGODB_DATA_DIR` | `/data/mongodb/data` | Path to the data directory |
+| `MONGODB_LOG_DIR` | `/data/mongodb/logs` | Path to the log directory |
+| `MONGODB_ROOT_USERNAME` | `root` | Username for the root admin user |
+| `MONGODB_ROOT_PASSWORD` | _(none)_ | Password for the root admin user (enables auth) |
+| `MONGODB_DATABASE` | _(none)_ | Name of a database to create on first run |
+| `MONGODB_USERNAME` | _(none)_ | Name of a user to create with `readWrite` access |
+| `MONGODB_PASSWORD` | _(none)_ | Password for the new user |
+| `MONGODB_EXTRA_FLAGS` | _(none)_ | Additional flags passed to `mongod` |
 
-## Init scripts
+## Ports
 
-Mount `.sh` or `.js` files in `/docker-entrypoint-initdb.d/`.
+| Port | Description |
+|------|-------------|
+| `27017` | MongoDB server |
 
-## Build details
+## Data Persistence
 
-- **Base**: Ubuntu 24.04
-- **Build**: MongoDB Inc apt repository
-- **Data**: `/data/mongodb`
+Data is stored in `/data/mongodb/`. Mount a volume to persist data:
+
+```bash
+docker run -d -v mongodb-data:/data/mongodb ghcr.io/kubelauncher/mongodb:8.2
+```
+
+## Init Scripts
+
+Place `.sh` or `.js` files in `/docker-entrypoint-initdb.d/` to run them on first initialization:
+
+```bash
+docker run -d \
+  -v ./init.js:/docker-entrypoint-initdb.d/init.js:ro \
+  ghcr.io/kubelauncher/mongodb:8.2
+```
+
+## Helm Chart
+
+A production-ready Helm chart is available:
+
+```bash
+helm install my-mongodb oci://ghcr.io/kubelauncher/charts/mongodb
+```
+
+📦 [View on ArtifactHub](https://artifacthub.io/packages/helm/kubelauncher/mongodb)
+
+## Links
+
+- 📖 [Changelog](https://github.com/kubelauncher/docker/commits/main/images/mongodb)
+- 🐳 [Dockerfile](https://github.com/kubelauncher/docker/tree/main/images/mongodb)
+- ⎈ [Helm Chart Source](https://github.com/kubelauncher/charts/tree/main/charts/mongodb)
+- 🌐 [KubeLauncher](https://www.kubelauncher.com)
+
+## About KubeLauncher
+
+KubeLauncher delivers production-ready Kubernetes platforms for startups and scale-ups — in days, not months. These open-source images and Helm charts are our contribution to the community.
+
+Need a production Kubernetes platform? [Let's talk](https://cal.com/phamitservices/kubernetes-launcher).
+
+## License
+
+Apache-2.0

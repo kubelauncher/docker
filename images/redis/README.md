@@ -1,26 +1,79 @@
-# redis
+# Redis
 
-Redis in-memory data store, compiled from source on Ubuntu Linux.
+> Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
 
-## Quick start
+Lightweight, production-ready Redis in-memory data store image based on Ubuntu 24.04. Compiled from source with TLS support. Designed for Kubernetes, built for everyone.
+
+## Supported Tags
+
+- `8.4.0`, `8.4`, `8`, `latest`
+
+Tags follow semantic versioning. Each push also generates a `sha-<commit>` tag for pinning to exact builds.
+
+## Quick Start
 
 ```bash
-docker run -d -p 6379:6379 -e REDIS_PASSWORD=secret ghcr.io/kubelauncher/redis
+docker run -d --name redis -e REDIS_PASSWORD=secret ghcr.io/kubelauncher/redis:8.4.0
 ```
 
-## Environment variables
+## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `REDIS_PORT` | `6379` | Listen port |
-| `REDIS_PASSWORD` | _(empty)_ | Require authentication |
-| `REDIS_MAXMEMORY` | _(empty)_ | Memory limit (e.g. `256mb`) |
-| `REDIS_MAXMEMORY_POLICY` | _(empty)_ | Eviction policy |
-| `REDIS_DISABLE_COMMANDS` | _(empty)_ | Comma-separated commands to disable |
-| `REDIS_EXTRA_FLAGS` | _(empty)_ | Additional redis-server flags |
+| `REDIS_PORT` | `6379` | Port Redis listens on |
+| `REDIS_PASSWORD` | _(none)_ | Set a password (`requirepass`) |
+| `REDIS_MAXMEMORY` | _(none)_ | Maximum memory limit (e.g., `256mb`) |
+| `REDIS_MAXMEMORY_POLICY` | _(none)_ | Eviction policy (e.g., `allkeys-lru`) |
+| `REDIS_DISABLE_COMMANDS` | _(none)_ | Comma-separated list of commands to disable |
+| `REDIS_EXTRA_FLAGS` | _(none)_ | Additional flags passed to `redis-server` |
 
-## Build details
+## Ports
 
-- **Base**: Ubuntu 24.04
-- **Build**: Compiled from source with TLS support
-- **Data**: `/data`
+| Port | Description |
+|------|-------------|
+| `6379` | Redis server |
+
+## Data Persistence
+
+Data is stored in `/data/`. Mount a volume to persist data:
+
+```bash
+docker run -d -v redis-data:/data ghcr.io/kubelauncher/redis:8.4.0
+```
+
+## Configuration
+
+The entrypoint generates a config file at `/data/redis.conf` by default. To provide your own config, mount it at `/opt/redis/etc/redis.conf`:
+
+```bash
+docker run -d -v ./redis.conf:/opt/redis/etc/redis.conf:ro ghcr.io/kubelauncher/redis:8.4.0
+```
+
+Read-only ConfigMap mounts are fully supported for Kubernetes deployments.
+
+## Helm Chart
+
+A production-ready Helm chart is available:
+
+```bash
+helm install my-redis oci://ghcr.io/kubelauncher/charts/redis
+```
+
+📦 [View on ArtifactHub](https://artifacthub.io/packages/helm/kubelauncher/redis)
+
+## Links
+
+- 📖 [Changelog](https://github.com/kubelauncher/docker/commits/main/images/redis)
+- 🐳 [Dockerfile](https://github.com/kubelauncher/docker/tree/main/images/redis)
+- ⎈ [Helm Chart Source](https://github.com/kubelauncher/charts/tree/main/charts/redis)
+- 🌐 [KubeLauncher](https://www.kubelauncher.com)
+
+## About KubeLauncher
+
+KubeLauncher delivers production-ready Kubernetes platforms for startups and scale-ups — in days, not months. These open-source images and Helm charts are our contribution to the community.
+
+Need a production Kubernetes platform? [Let's talk](https://cal.com/phamitservices/kubernetes-launcher).
+
+## License
+
+Apache-2.0
