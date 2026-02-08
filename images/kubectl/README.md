@@ -1,6 +1,6 @@
 # kubectl
 
-> Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
+> Built by [KubeLauncher](https://www.kubelauncher.com) — production-grade, open-source, community-first.
 
 Lightweight kubectl CLI utility image based on Ubuntu 24.04. Includes commonly used Kubernetes tooling: `jq`, `yq`, `git`, `envsubst`, and `bash`. SHA256-verified kubectl binary. Designed for Kubernetes, built for everyone.
 

@@ -1,6 +1,6 @@
 # PostgreSQL
 
-> Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
+> Built by [KubeLauncher](https://www.kubelauncher.com) — production-grade, open-source, community-first.
 
 Production-ready, broadly compatible PostgreSQL relational database image based on Ubuntu 24.04. Includes PostgreSQL server, client, and contrib modules from the official PGDG repository. Designed for Kubernetes, built for everyone.
 
