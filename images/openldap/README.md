@@ -1,6 +1,6 @@
 # OpenLDAP
 
-> Packaged with love by [KubeLauncher](https://www.kubelauncher.com) — Bringing love to the Kubernetes community, one image at a time.
+> Built by [KubeLauncher](https://www.kubelauncher.com) — production-grade, open-source, community-first.
 
 Production-ready, broadly compatible OpenLDAP directory service image based on Ubuntu 24.04. Includes slapd and ldap-utils. Automatic initialization with schema loading and base DN creation. Designed for Kubernetes, built for everyone.
 
