@@ -67,7 +67,7 @@ helm install my-kafka oci://ghcr.io/kubelauncher/charts/kafka
 
 ## About KubeLauncher
 
-KubeLauncher delivers production-ready Kubernetes platforms for startups and scale-ups — in days, not months. These open-source images and Helm charts are our contribution to the community.
+Built by KubeLauncher — production-grade, open-source, community-first.
 
 Need a production Kubernetes platform? [Let's talk](https://cal.com/kubelauncher).
 
