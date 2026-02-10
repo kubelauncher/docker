@@ -25,11 +25,19 @@ init_database() {
         --logpath "$LOGDIR/mongod.log" &
     local pid=$!
 
-    for i in $(seq 1 30); do
-        if mongosh --port "${MONGODB_PORT:-27017}" --eval "db.adminCommand('ping')" &>/dev/null; then
+    # Wait for mongod to accept connections (TCP check first, then mongosh)
+    local port="${MONGODB_PORT:-27017}"
+    echo "Waiting for mongod to start on port $port..."
+    for i in $(seq 1 60); do
+        if mongosh --quiet --port "$port" --serverSelectionTimeoutMS 5000 --eval "db.adminCommand('ping')" &>/dev/null; then
+            echo "mongod is ready."
             break
         fi
-        sleep 1
+        if [ "$i" -eq 60 ]; then
+            echo "ERROR: mongod did not start in time"
+            exit 1
+        fi
+        sleep 2
     done
 
     if [ -n "$MONGODB_ROOT_PASSWORD" ]; then
