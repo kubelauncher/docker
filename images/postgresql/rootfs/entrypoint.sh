@@ -49,10 +49,28 @@ host all all ::/0 md5
 EOF
     fi
 
+    # Add replication entries to pg_hba.conf if replication mode
+    if [ "$POSTGRESQL_REPLICATION_MODE" = "master" ]; then
+        cat >> "$PGDATA/pg_hba.conf" <<EOF
+host replication ${POSTGRESQL_REPLICATION_USER:-repl_user} 0.0.0.0/0 md5
+host replication ${POSTGRESQL_REPLICATION_USER:-repl_user} ::/0 md5
+EOF
+    fi
+
     cat >> "$PGDATA/postgresql.conf" <<EOF
 listen_addresses = '*'
 port = ${POSTGRESQL_PORT_NUMBER:-5432}
 EOF
+
+    # Add WAL/replication settings for primary
+    if [ "$POSTGRESQL_REPLICATION_MODE" = "master" ]; then
+        cat >> "$PGDATA/postgresql.conf" <<EOF
+wal_level = replica
+max_wal_senders = 10
+max_replication_slots = 10
+hot_standby = on
+EOF
+    fi
 
     pg_start_temp
 
@@ -68,9 +86,50 @@ EOF
         psql -U postgres -c "CREATE DATABASE \"${POSTGRESQL_DATABASE}\" OWNER \"${owner}\";"
     fi
 
+    # Create replication user if in master mode
+    if [ "$POSTGRESQL_REPLICATION_MODE" = "master" ] && [ -n "$POSTGRESQL_REPLICATION_USER" ] && [ -n "$POSTGRESQL_REPLICATION_PASSWORD" ]; then
+        echo "Creating replication user: $POSTGRESQL_REPLICATION_USER"
+        psql -U postgres -c "CREATE USER \"${POSTGRESQL_REPLICATION_USER}\" WITH REPLICATION PASSWORD '${POSTGRESQL_REPLICATION_PASSWORD}';"
+    fi
+
     run_init_scripts
 
     pg_stop_temp
+}
+
+init_replica() {
+    if [ -s "$PGDATA/PG_VERSION" ]; then
+        echo "PostgreSQL replica data directory already initialized, skipping."
+        return
+    fi
+
+    echo "Initializing PostgreSQL replica from ${POSTGRESQL_PRIMARY_HOST}:${POSTGRESQL_PRIMARY_PORT:-5432}..."
+
+    local primary_host="${POSTGRESQL_PRIMARY_HOST}"
+    local primary_port="${POSTGRESQL_PRIMARY_PORT:-5432}"
+    local repl_user="${POSTGRESQL_REPLICATION_USER:-repl_user}"
+    local repl_pass="${POSTGRESQL_REPLICATION_PASSWORD}"
+
+    export PGPASSWORD="$repl_pass"
+
+    for i in $(seq 1 30); do
+        if "${PG_BIN_DIR}/pg_isready" -h "$primary_host" -p "$primary_port" -U "$repl_user" &>/dev/null; then
+            break
+        fi
+        echo "Waiting for primary to be ready... ($i/30)"
+        sleep 5
+    done
+
+    "${PG_BIN_DIR}/pg_basebackup" \
+        -h "$primary_host" \
+        -p "$primary_port" \
+        -U "$repl_user" \
+        -D "$PGDATA" \
+        -Fp -Xs -R -P
+
+    unset PGPASSWORD
+
+    echo "Replica initialization complete."
 }
 
 pg_start_temp() {
@@ -107,7 +166,13 @@ run_init_scripts() {
 
 if [ "$1" = "postgres" ]; then
     run_preinit_scripts
-    init_database
+
+    if [ "$POSTGRESQL_REPLICATION_MODE" = "slave" ]; then
+        init_replica
+    else
+        init_database
+    fi
+
     shift
     exec "${PG_BIN_DIR}/postgres" -D "$PGDATA" -p "${POSTGRESQL_PORT_NUMBER:-5432}" "$@"
 fi
