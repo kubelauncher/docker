@@ -6,55 +6,71 @@ setup_cluster_conf() {
     local runtime_conf="/data/redis.conf"
     local port="${REDIS_PORT:-6379}"
 
-    # If config exists and is read-only (ConfigMap mount), use it directly
-    if [ -f "$conf" ] && [ ! -w "$conf" ]; then
-        echo "$conf"
-        return
-    fi
-
-    # If config exists and is writable, use it
-    if [ -f "$conf" ] && [ -w "$conf" ]; then
-        echo "$conf"
-        return
-    fi
-
-    # Generate config in /data (always writable)
-    conf="$runtime_conf"
-
-    cat > "$conf" <<EOF
+    # If config exists (ConfigMap or pre-existing), copy to runtime and add cluster directives
+    if [ -f "$conf" ]; then
+        cp "$conf" "$runtime_conf"
+        conf="$runtime_conf"
+    else
+        # Generate base config
+        conf="$runtime_conf"
+        cat > "$conf" <<EOF
 bind 0.0.0.0
 port ${port}
 protected-mode no
 dir /data
-cluster-enabled yes
-cluster-config-file /data/nodes.conf
-cluster-node-timeout 5000
 appendonly yes
 EOF
+    fi
 
+    # Always ensure cluster directives are present
+    if ! grep -q "^cluster-enabled" "$conf"; then
+        echo "cluster-enabled yes" >> "$conf"
+    fi
+    if ! grep -q "^cluster-config-file" "$conf"; then
+        echo "cluster-config-file /data/nodes.conf" >> "$conf"
+    fi
+    if ! grep -q "^cluster-node-timeout" "$conf"; then
+        echo "cluster-node-timeout 5000" >> "$conf"
+    fi
+
+    # Add password auth for cluster communication
     if [ -n "$REDIS_PASSWORD" ]; then
-        echo "requirepass ${REDIS_PASSWORD}" >> "$conf"
-        echo "masterauth ${REDIS_PASSWORD}" >> "$conf"
+        if ! grep -q "^requirepass" "$conf"; then
+            echo "requirepass ${REDIS_PASSWORD}" >> "$conf"
+        fi
+        if ! grep -q "^masterauth" "$conf"; then
+            echo "masterauth ${REDIS_PASSWORD}" >> "$conf"
+        fi
     fi
 
     if [ -n "$REDIS_CLUSTER_ANNOUNCE_IP" ]; then
-        echo "cluster-announce-ip ${REDIS_CLUSTER_ANNOUNCE_IP}" >> "$conf"
+        if ! grep -q "^cluster-announce-ip" "$conf"; then
+            echo "cluster-announce-ip ${REDIS_CLUSTER_ANNOUNCE_IP}" >> "$conf"
+        fi
     fi
 
     if [ -n "$REDIS_CLUSTER_ANNOUNCE_PORT" ]; then
-        echo "cluster-announce-port ${REDIS_CLUSTER_ANNOUNCE_PORT}" >> "$conf"
+        if ! grep -q "^cluster-announce-port" "$conf"; then
+            echo "cluster-announce-port ${REDIS_CLUSTER_ANNOUNCE_PORT}" >> "$conf"
+        fi
     fi
 
     if [ -n "$REDIS_CLUSTER_ANNOUNCE_BUS_PORT" ]; then
-        echo "cluster-announce-bus-port ${REDIS_CLUSTER_ANNOUNCE_BUS_PORT}" >> "$conf"
+        if ! grep -q "^cluster-announce-bus-port" "$conf"; then
+            echo "cluster-announce-bus-port ${REDIS_CLUSTER_ANNOUNCE_BUS_PORT}" >> "$conf"
+        fi
     fi
 
     if [ -n "$REDIS_MAXMEMORY" ]; then
-        echo "maxmemory ${REDIS_MAXMEMORY}" >> "$conf"
+        if ! grep -q "^maxmemory " "$conf"; then
+            echo "maxmemory ${REDIS_MAXMEMORY}" >> "$conf"
+        fi
     fi
 
     if [ -n "$REDIS_MAXMEMORY_POLICY" ]; then
-        echo "maxmemory-policy ${REDIS_MAXMEMORY_POLICY}" >> "$conf"
+        if ! grep -q "^maxmemory-policy" "$conf"; then
+            echo "maxmemory-policy ${REDIS_MAXMEMORY_POLICY}" >> "$conf"
+        fi
     fi
 
     echo "$conf"
