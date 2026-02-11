@@ -68,13 +68,18 @@ init_replication_secondary() {
 
     wait_for_primary
 
-    # Start temporary mysqld for configuration
+    # Start temporary mysqld for configuration (with GTID for MASTER_AUTO_POSITION=1)
+    local local_server_id
+    local_server_id=$(get_server_id)
     mysqld \
         --datadir="$DATADIR" \
         --skip-networking \
         --skip-grant-tables \
         --socket=/var/run/mysqld/mysqld.sock \
         --log-error="$LOGDIR/error.log" \
+        --server-id="$local_server_id" \
+        --gtid-mode=ON \
+        --enforce-gtid-consistency=ON \
         2>&1 &
     local pid=$!
 
