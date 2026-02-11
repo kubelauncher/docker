@@ -30,7 +30,7 @@ LABEL org.opencontainers.image.title="memcached" \
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libevent-2.1-7t64 ca-certificates tzdata \
+        libevent-2.1-7t64 ca-certificates tzdata netcat-openbsd \
     && groupadd -r -g 1001 memcached \
     && useradd -r -u 1001 -g memcached -d /data memcached \
     && mkdir -p /data \

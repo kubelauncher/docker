@@ -41,7 +41,12 @@ ENV MYSQL_PORT_NUMBER="3306" \
     MYSQL_DATA_DIR="/data/mysql/data" \
     MYSQL_DATABASE="" \
     MYSQL_USER="" \
-    MYSQL_EXTRA_FLAGS=""
+    MYSQL_EXTRA_FLAGS="" \
+    MYSQL_REPLICATION_MODE="" \
+    MYSQL_REPLICATION_USER="" \
+    MYSQL_REPLICATION_PASSWORD="" \
+    MYSQL_MASTER_HOST="" \
+    MYSQL_MASTER_PORT="3306"
 
 VOLUME ["/data/mysql", "/docker-entrypoint-initdb.d"]
 EXPOSE 3306
