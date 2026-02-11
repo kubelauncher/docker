@@ -238,6 +238,7 @@ if [ "$1" = "mariadbd" ]; then
         --port="${MARIADB_PORT_NUMBER:-3306}" \
         --bind-address=0.0.0.0 \
         --socket=/run/mysqld/mysqld.sock \
+        --log-warnings=1 \
         $REPL_FLAGS \
         $MARIADB_EXTRA_FLAGS \
         "$@"
