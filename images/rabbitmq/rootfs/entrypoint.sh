@@ -7,6 +7,9 @@ setup_rabbitmq() {
     export RABBITMQ_MNESIA_BASE="${RABBITMQ_DATA_DIR:-/data/rabbitmq/data}"
     export RABBITMQ_LOG_BASE="${RABBITMQ_LOG_DIR:-/data/rabbitmq/logs}"
 
+    # Force console logging (rabbitmq-server redirects stdout to files by default)
+    export RABBITMQ_LOGS=-
+
     # Create required directories
     mkdir -p "$RABBITMQ_MNESIA_BASE" "$RABBITMQ_LOG_BASE"
 
@@ -22,6 +25,8 @@ default_vhost = ${RABBITMQ_DEFAULT_VHOST:-/}
 loopback_users = none
 listeners.tcp.default = 5672
 management.tcp.port = 15672
+log.console = true
+log.console.level = info
 EOF
 
         if [ -n "$RABBITMQ_VM_MEMORY_HIGH_WATERMARK" ]; then
