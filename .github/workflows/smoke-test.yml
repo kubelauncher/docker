@@ -149,7 +149,11 @@ jobs:
               docker run -d --name test -p 27017:27017 \
                 -e MONGODB_ROOT_PASSWORD=testpass \
                 ${IMAGE}
-              sleep 10
+              for i in $(seq 1 12); do
+                docker exec test mongosh --quiet -u root -p testpass --authenticationDatabase admin --eval "db.adminCommand('ping')" 2>/dev/null && break
+                echo "Waiting for MongoDB to initialize... ($i/12)"
+                sleep 5
+              done
               docker exec test mongosh --quiet -u root -p testpass --authenticationDatabase admin --eval "db.adminCommand('ping')"
               ;;
             rabbitmq)
