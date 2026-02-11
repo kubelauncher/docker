@@ -53,6 +53,10 @@ EOF
 if [ "$1" = "rabbitmq-server" ]; then
     setup_rabbitmq
     echo "Starting RabbitMQ server..."
+    shift
+    # Bypass /usr/sbin/rabbitmq-server wrapper which hardcodes stdout redirect
+    # to /var/log/rabbitmq/startup_log. Call the real binary directly.
+    exec /usr/lib/rabbitmq/bin/rabbitmq-server "$@"
 fi
 
 exec "$@"
