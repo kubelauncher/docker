@@ -5,18 +5,156 @@ DATADIR="${MONGODB_DATA_DIR:-/data/mongodb/data}"
 LOGDIR="${MONGODB_LOG_DIR:-/data/mongodb/logs}"
 
 needs_init() {
-    # Check if any initialization work is needed
     [ -n "$MONGODB_ROOT_PASSWORD" ] && return 0
     [ -n "$MONGODB_USERNAME" ] && [ -n "$MONGODB_PASSWORD" ] && [ -n "$MONGODB_DATABASE" ] && return 0
     for f in /docker-entrypoint-initdb.d/*; do [ -f "$f" ] && return 0; done
     return 1
 }
 
-init_database() {
-    # Create runtime directories (PVC mount may overwrite them)
-    mkdir -p "$DATADIR"
-    mkdir -p "$LOGDIR"
+setup_keyfile() {
+    if [ -z "$MONGODB_KEYFILE_PATH" ]; then
+        echo "ERROR: MONGODB_KEYFILE_PATH is required for replica set mode"
+        exit 1
+    fi
+    if [ ! -f "$MONGODB_KEYFILE_PATH" ]; then
+        echo "ERROR: Keyfile not found at $MONGODB_KEYFILE_PATH"
+        exit 1
+    fi
+    echo "Keyfile found at $MONGODB_KEYFILE_PATH"
+}
 
+wait_for_tcp() {
+    local port="$1"
+    local timeout="${2:-120}"
+    echo "Waiting for mongod on port $port..."
+    for i in $(seq 1 "$timeout"); do
+        if bash -c "echo > /dev/tcp/127.0.0.1/$port" 2>/dev/null; then
+            echo "mongod is accepting connections."
+            sleep 2
+            return 0
+        fi
+        if [ "$i" -eq "$timeout" ]; then
+            echo "ERROR: mongod did not start in ${timeout}s"
+            return 1
+        fi
+        sleep 2
+    done
+}
+
+init_replicaset() {
+    local port="${MONGODB_PORT:-27017}"
+    local init_marker="$DATADIR/.mongodb_rs_init_complete"
+
+    if [ -f "$init_marker" ]; then
+        echo "Replica set already initialized, skipping."
+        return
+    fi
+
+    echo "Initializing MongoDB replica set..."
+
+    # Start mongod with --replSet and --keyFile in background
+    # The localhost exception allows rs.initiate() and first user creation without auth
+    mongod --dbpath "$DATADIR" --port "$port" --bind_ip_all \
+        --replSet "${MONGODB_REPLICA_SET_NAME:-rs0}" \
+        --keyFile "${MONGODB_KEYFILE_PATH}" \
+        --logpath "$LOGDIR/mongod_init.log" &
+    local pid=$!
+
+    wait_for_tcp "$port" 120 || { kill "$pid" 2>/dev/null; exit 1; }
+
+    # Build replica set member config
+    local rs_members="[{_id: 0, host: '${MONGODB_INITIAL_PRIMARY_HOST}:${port}', priority: 2}"
+    local member_id=1
+    if [ -n "$MONGODB_SECONDARY_HOSTS" ]; then
+        IFS=',' read -ra HOSTS <<< "$MONGODB_SECONDARY_HOSTS"
+        for host in "${HOSTS[@]}"; do
+            rs_members="${rs_members}, {_id: ${member_id}, host: '${host}:${port}'}"
+            member_id=$((member_id + 1))
+        done
+    fi
+    rs_members="${rs_members}]"
+
+    local rs_name="${MONGODB_REPLICA_SET_NAME:-rs0}"
+
+    # rs.initiate() via localhost exception (idempotent)
+    mongosh --quiet --port "$port" admin <<EOJS
+try {
+  var status = rs.status();
+  if (status.ok === 1) {
+    print("Replica set already initiated, skipping rs.initiate().");
+  }
+} catch (e) {
+  if (e.codeName === "NotYetInitialized") {
+    print("Initiating replica set '${rs_name}'...");
+    rs.initiate({_id: '${rs_name}', members: ${rs_members}});
+    print("Replica set initiated.");
+  } else { throw e; }
+}
+EOJS
+
+    # Wait for PRIMARY election
+    echo "Waiting for PRIMARY election..."
+    for i in $(seq 1 120); do
+        IS_PRIMARY=$(mongosh --quiet --port "$port" admin --eval "try { db.hello().isWritablePrimary } catch(e) { false }" 2>/dev/null || echo "false")
+        if [ "$IS_PRIMARY" = "true" ]; then
+            echo "This node is PRIMARY."
+            break
+        fi
+        if [ "$i" -eq 120 ]; then
+            echo "ERROR: PRIMARY election timed out"
+            kill "$pid" 2>/dev/null || true
+            exit 1
+        fi
+        sleep 2
+    done
+
+    # Create root user via localhost exception (idempotent)
+    if [ -n "$MONGODB_ROOT_PASSWORD" ]; then
+        mongosh --quiet --port "$port" admin <<EOJS || true
+try {
+  db.createUser({
+    user: "${MONGODB_ROOT_USERNAME:-root}",
+    pwd: "${MONGODB_ROOT_PASSWORD}",
+    roles: [{ role: "root", db: "admin" }]
+  });
+  print("Root user created.");
+} catch (e) {
+  if (e.codeName === "DuplicateKey" || e.code === 51003) {
+    print("Root user already exists, skipping.");
+  } else { throw e; }
+}
+EOJS
+    fi
+
+    # Create app user (localhost exception closed after root user, must auth)
+    if [ -n "$MONGODB_USERNAME" ] && [ -n "$MONGODB_PASSWORD" ] && [ -n "$MONGODB_DATABASE" ]; then
+        mongosh --quiet --port "$port" \
+            -u "${MONGODB_ROOT_USERNAME:-root}" -p "${MONGODB_ROOT_PASSWORD}" \
+            --authenticationDatabase admin "${MONGODB_DATABASE}" <<EOJS || true
+try {
+  db.createUser({
+    user: "${MONGODB_USERNAME}",
+    pwd: "${MONGODB_PASSWORD}",
+    roles: [{ role: "readWrite", db: "${MONGODB_DATABASE}" }]
+  });
+  print("App user created.");
+} catch (e) {
+  if (e.codeName === "DuplicateKey" || e.code === 51003) {
+    print("App user already exists, skipping.");
+  } else { throw e; }
+}
+EOJS
+    fi
+
+    # Shutdown init mongod
+    kill "$pid"
+    wait "$pid" 2>/dev/null || true
+
+    touch "$init_marker"
+    echo "Replica set initialization complete."
+}
+
+init_database() {
     local init_marker="$DATADIR/.mongodb_init_complete"
 
     if [ -f "$init_marker" ]; then
@@ -33,7 +171,6 @@ init_database() {
     echo "Initializing MongoDB..."
 
     # Bind to 0.0.0.0 so kubelet probes can reach mongod during init
-    # (pod is not Ready yet so the Service won't route traffic)
     mongod \
         --dbpath "$DATADIR" \
         --port "${MONGODB_PORT:-27017}" \
@@ -42,25 +179,10 @@ init_database() {
         --logpath "$LOGDIR/mongod.log" &
     local pid=$!
 
-    # Wait for mongod to accept TCP connections (lightweight check, no mongosh to avoid OOM)
     local port="${MONGODB_PORT:-27017}"
-    echo "Waiting for mongod to start on port $port..."
-    for i in $(seq 1 60); do
-        if bash -c "echo > /dev/tcp/127.0.0.1/$port" 2>/dev/null; then
-            echo "mongod is accepting connections."
-            sleep 2  # give mongod a moment to finish initialization
-            break
-        fi
-        if [ "$i" -eq 60 ]; then
-            echo "ERROR: mongod did not start in time"
-            kill "$pid" 2>/dev/null || true
-            wait "$pid" 2>/dev/null || true
-            exit 1
-        fi
-        sleep 2
-    done
+    wait_for_tcp "$port" 120 || { kill "$pid" 2>/dev/null; exit 1; }
 
-    # Create root user (idempotent — ignores error if user already exists from partial init)
+    # Create root user (idempotent)
     if [ -n "$MONGODB_ROOT_PASSWORD" ]; then
         mongosh --quiet --port "$port" admin <<EOJS || true
 try {
@@ -110,24 +232,40 @@ EOJS
         esac
     done
 
-    # Shutdown MongoDB gracefully
     kill "$pid"
     wait "$pid" 2>/dev/null || true
 
-    # Only mark init complete AFTER everything succeeded
     touch "$init_marker"
     echo "MongoDB initialization complete."
 }
 
 if [ "$1" = "mongod" ]; then
-    init_database
+    mkdir -p "$DATADIR"
+    mkdir -p "$LOGDIR"
+
     shift
 
     ARGS="--dbpath $DATADIR --port ${MONGODB_PORT:-27017} --bind_ip_all"
 
-    if [ -n "$MONGODB_ROOT_PASSWORD" ]; then
-        ARGS="$ARGS --auth"
-    fi
+    case "${MONGODB_REPLICA_SET_MODE}" in
+        primary)
+            setup_keyfile
+            init_replicaset
+            ARGS="$ARGS --replSet ${MONGODB_REPLICA_SET_NAME:-rs0} --keyFile ${MONGODB_KEYFILE_PATH} --auth"
+            echo "Starting MongoDB as replica set PRIMARY (${MONGODB_REPLICA_SET_NAME:-rs0})..."
+            ;;
+        secondary)
+            setup_keyfile
+            ARGS="$ARGS --replSet ${MONGODB_REPLICA_SET_NAME:-rs0} --keyFile ${MONGODB_KEYFILE_PATH} --auth"
+            echo "Starting MongoDB as replica set SECONDARY (${MONGODB_REPLICA_SET_NAME:-rs0})..."
+            ;;
+        *)
+            init_database
+            if [ -n "$MONGODB_ROOT_PASSWORD" ]; then
+                ARGS="$ARGS --auth"
+            fi
+            ;;
+    esac
 
     exec mongod $ARGS $MONGODB_EXTRA_FLAGS "$@"
 fi

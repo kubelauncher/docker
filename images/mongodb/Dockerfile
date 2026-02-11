@@ -35,10 +35,12 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
                 /data/mongodb/logs \
                 /docker-entrypoint-initdb.d \
                 /opt/mongodb \
+                /opt/mongodb/keyfile \
     && chown -R mongodb:mongodb /data/mongodb \
                                  /docker-entrypoint-initdb.d \
                                  /opt/mongodb \
     && chmod 700 /data/mongodb/data \
+    && chmod 700 /opt/mongodb/keyfile \
     && apt-get purge -y --auto-remove curl gnupg \
     && rm -rf /var/lib/apt/lists/*
 
@@ -51,7 +53,10 @@ ENV MONGODB_PORT="27017" \
     MONGODB_DATABASE="" \
     MONGODB_USERNAME="" \
     MONGODB_ROOT_USERNAME="root" \
-    MONGODB_EXTRA_FLAGS=""
+    MONGODB_EXTRA_FLAGS="" \
+    MONGODB_REPLICA_SET_MODE="" \
+    MONGODB_REPLICA_SET_NAME="rs0" \
+    MONGODB_KEYFILE_PATH=""
 
 VOLUME ["/data/mongodb", "/docker-entrypoint-initdb.d"]
 EXPOSE 27017
