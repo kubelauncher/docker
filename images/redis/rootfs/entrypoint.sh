@@ -46,6 +46,14 @@ EOF
         done
     fi
 
+    # Replication support
+    if [ "$REDIS_REPLICATION_MODE" = "replica" ] && [ -n "$REDIS_MASTER_HOST" ]; then
+        echo "replicaof ${REDIS_MASTER_HOST} ${REDIS_MASTER_PORT:-6379}" >> "$REDIS_CONF"
+        if [ -n "$REDIS_MASTER_PASSWORD" ]; then
+            echo "masterauth ${REDIS_MASTER_PASSWORD}" >> "$REDIS_CONF"
+        fi
+    fi
+
     echo "$REDIS_CONF"
 }
 
