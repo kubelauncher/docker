@@ -35,7 +35,9 @@ if [ "$verbose_enabled" = "true" ]; then
     done
 
     # Connect a log watcher that streams all events to stdout
-    printf "watch mutations fetchers conns evictions\r\n" | nc 127.0.0.1 "$PORT" &
+    # Use sleep to keep the pipe open (nc closes when stdin EOF)
+    # Note: "conns" type not supported in all versions, omitted
+    (printf "watch mutations fetchers evictions\r\n"; sleep infinity) | nc 127.0.0.1 "$PORT" &
     WATCH_PID=$!
 
     # Forward signals to memcached
