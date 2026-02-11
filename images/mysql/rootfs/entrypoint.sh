@@ -4,6 +4,106 @@ set -e
 DATADIR="${MYSQL_DATA_DIR:-/data/mysql/data}"
 LOGDIR="${MYSQL_LOG_DIR:-/data/mysql/logs}"
 
+get_server_id() {
+    if [ "${MYSQL_REPLICATION_MODE}" = "primary" ]; then
+        echo 1
+    else
+        local ordinal
+        ordinal=$(hostname | grep -o '[0-9]*$' || echo 0)
+        echo $(( ordinal + 100 ))
+    fi
+}
+
+wait_for_primary() {
+    local host="${MYSQL_MASTER_HOST}"
+    local port="${MYSQL_MASTER_PORT:-3306}"
+    echo "Waiting for primary at ${host}:${port}..."
+    for i in $(seq 1 60); do
+        if mysql -h "$host" -P "$port" -u "$MYSQL_REPLICATION_USER" -p"$MYSQL_REPLICATION_PASSWORD" -e "SELECT 1" &>/dev/null; then
+            echo "Primary is ready."
+            return 0
+        fi
+        sleep 2
+    done
+    echo "ERROR: primary not ready after 120s"
+    return 1
+}
+
+init_replication_primary() {
+    cat >> /tmp/init.sql <<EOSQL
+CREATE USER IF NOT EXISTS '${MYSQL_REPLICATION_USER}'@'%' IDENTIFIED BY '${MYSQL_REPLICATION_PASSWORD}';
+GRANT REPLICATION SLAVE ON *.* TO '${MYSQL_REPLICATION_USER}'@'%';
+FLUSH PRIVILEGES;
+EOSQL
+}
+
+init_replication_secondary() {
+    mkdir -p /run/mysqld /var/run/mysqld 2>/dev/null || true
+    if ! mkdir -p "$DATADIR" 2>/dev/null || ! touch "$DATADIR/.write-test" 2>/dev/null; then
+        DATADIR="/tmp/mysql-data"
+        LOGDIR="/tmp/mysql-logs"
+    else
+        rm -f "$DATADIR/.write-test"
+    fi
+    if ! mkdir -p "$LOGDIR" 2>/dev/null; then
+        LOGDIR="/tmp/mysql-logs"
+    fi
+    mkdir -p "$DATADIR" "$LOGDIR"
+    touch "$LOGDIR/error.log" 2>/dev/null || true
+    chown -R mysql:mysql "$LOGDIR" /run/mysqld /var/run/mysqld 2>/dev/null || true
+
+    if [ -f "$DATADIR/.configured" ]; then
+        echo "MySQL secondary already configured, skipping."
+        return
+    fi
+
+    # Initialize data directory
+    if [ ! -d "$DATADIR/mysql" ]; then
+        echo "Initializing MySQL secondary data directory..."
+        if [ -d "$DATADIR" ] && [ -z "$(ls -A "$DATADIR")" ]; then
+            rmdir "$DATADIR"
+        fi
+        mysqld --initialize-insecure --datadir="$DATADIR" --log-error="$LOGDIR/error.log" 2>&1
+    fi
+
+    wait_for_primary
+
+    # Start temporary mysqld for configuration
+    mysqld \
+        --datadir="$DATADIR" \
+        --skip-networking \
+        --skip-grant-tables \
+        --socket=/var/run/mysqld/mysqld.sock \
+        --log-error="$LOGDIR/error.log" \
+        2>&1 &
+    local pid=$!
+
+    for i in $(seq 1 60); do
+        if mysql --socket=/var/run/mysqld/mysqld.sock -u root -e "SELECT 1" &>/dev/null; then
+            break
+        fi
+        sleep 1
+    done
+
+    # Set root password and configure replication
+    mysql --socket=/var/run/mysqld/mysqld.sock -u root <<EOSQL
+FLUSH PRIVILEGES;
+ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+CHANGE MASTER TO
+    MASTER_HOST='${MYSQL_MASTER_HOST}',
+    MASTER_PORT=${MYSQL_MASTER_PORT:-3306},
+    MASTER_USER='${MYSQL_REPLICATION_USER}',
+    MASTER_PASSWORD='${MYSQL_REPLICATION_PASSWORD}',
+    MASTER_AUTO_POSITION=1;
+START SLAVE;
+FLUSH PRIVILEGES;
+EOSQL
+
+    touch "$DATADIR/.configured"
+    kill "$pid"
+    wait "$pid" 2>/dev/null || true
+}
+
 init_database() {
     # Create runtime directories
     mkdir -p /run/mysqld /var/run/mysqld 2>/dev/null || true
@@ -95,34 +195,47 @@ init_database() {
         exit 1
     fi
 
-    # Build all SQL statements to execute in a single session
-    local sql="FLUSH PRIVILEGES;"
+    # Build init SQL file
+    cat > /tmp/init.sql <<EOSQL
+FLUSH PRIVILEGES;
+EOSQL
 
     if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
-        sql="${sql}
+        cat >> /tmp/init.sql <<EOSQL
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
 CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;"
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+EOSQL
     fi
 
     if [ -n "$MYSQL_USER" ] && [ -n "$MYSQL_PASSWORD" ]; then
-        sql="${sql}
-CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';"
+        cat >> /tmp/init.sql <<EOSQL
+CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
+EOSQL
     fi
 
     if [ -n "$MYSQL_DATABASE" ]; then
-        sql="${sql}
-CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;"
+        cat >> /tmp/init.sql <<EOSQL
+CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
+EOSQL
         if [ -n "$MYSQL_USER" ]; then
-            sql="${sql}
-GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';"
+            cat >> /tmp/init.sql <<EOSQL
+GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';
+EOSQL
         fi
     fi
 
-    sql="${sql}
-FLUSH PRIVILEGES;"
+    # Add replication user if in primary mode
+    if [ "${MYSQL_REPLICATION_MODE}" = "primary" ] && [ -n "$MYSQL_REPLICATION_USER" ]; then
+        init_replication_primary
+    fi
 
-    mysql --socket=/var/run/mysqld/mysqld.sock -u root <<< "$sql"
+    cat >> /tmp/init.sql <<EOSQL
+FLUSH PRIVILEGES;
+EOSQL
+
+    mysql --socket=/var/run/mysqld/mysqld.sock -u root < /tmp/init.sql
+    rm -f /tmp/init.sql
 
     run_init_scripts
 
@@ -165,14 +278,30 @@ run_init_scripts() {
     fi
 }
 
+REPL_FLAGS=""
+
 if [ "$1" = "mysqld" ]; then
-    init_database
+    case "${MYSQL_REPLICATION_MODE}" in
+        primary)
+            init_database
+            REPL_FLAGS="--server-id=1 --log-bin --gtid-mode=ON --enforce-gtid-consistency=ON --binlog-format=ROW"
+            ;;
+        secondary)
+            init_replication_secondary
+            local_server_id=$(get_server_id)
+            REPL_FLAGS="--server-id=${local_server_id} --log-bin --gtid-mode=ON --enforce-gtid-consistency=ON --binlog-format=ROW --read-only=1"
+            ;;
+        *)
+            init_database
+            ;;
+    esac
     shift
     exec mysqld \
         --datadir="$DATADIR" \
         --port="${MYSQL_PORT_NUMBER:-3306}" \
         --bind-address=0.0.0.0 \
         --socket=/var/run/mysqld/mysqld.sock \
+        $REPL_FLAGS \
         $MYSQL_EXTRA_FLAGS \
         "$@"
 fi
