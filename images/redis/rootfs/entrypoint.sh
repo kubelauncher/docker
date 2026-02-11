@@ -4,15 +4,31 @@ set -e
 REDIS_CONF="/opt/redis/etc/redis.conf"
 REDIS_CONF_RUNTIME="/data/redis.conf"
 
-setup_redis_conf() {
-    # If config exists and is read-only (e.g., Kubernetes ConfigMap), use it directly
-    if [ -f "$REDIS_CONF" ] && [ ! -w "$REDIS_CONF" ]; then
-        echo "$REDIS_CONF"
-        return
-    fi
+needs_replication_config() {
+    [ "$REDIS_REPLICATION_MODE" = "replica" ] && [ -n "$REDIS_MASTER_HOST" ]
+}
 
-    # If config exists and is writable, use it
-    if [ -f "$REDIS_CONF" ] && [ -w "$REDIS_CONF" ]; then
+append_replication_config() {
+    local conf="$1"
+    if needs_replication_config; then
+        echo "replicaof ${REDIS_MASTER_HOST} ${REDIS_MASTER_PORT:-6379}" >> "$conf"
+        if [ -n "$REDIS_MASTER_PASSWORD" ]; then
+            echo "masterauth ${REDIS_MASTER_PASSWORD}" >> "$conf"
+        fi
+    fi
+}
+
+setup_redis_conf() {
+    # If config exists (e.g., Kubernetes ConfigMap)
+    if [ -f "$REDIS_CONF" ]; then
+        # If read-only OR we need to add replication config, copy to writable location
+        if [ ! -w "$REDIS_CONF" ] || needs_replication_config; then
+            echo "Using existing read-only config: $REDIS_CONF"
+            cp "$REDIS_CONF" "$REDIS_CONF_RUNTIME"
+            append_replication_config "$REDIS_CONF_RUNTIME"
+            echo "$REDIS_CONF_RUNTIME"
+            return
+        fi
         echo "$REDIS_CONF"
         return
     fi
@@ -46,13 +62,7 @@ EOF
         done
     fi
 
-    # Replication support
-    if [ "$REDIS_REPLICATION_MODE" = "replica" ] && [ -n "$REDIS_MASTER_HOST" ]; then
-        echo "replicaof ${REDIS_MASTER_HOST} ${REDIS_MASTER_PORT:-6379}" >> "$REDIS_CONF"
-        if [ -n "$REDIS_MASTER_PASSWORD" ]; then
-            echo "masterauth ${REDIS_MASTER_PASSWORD}" >> "$REDIS_CONF"
-        fi
-    fi
+    append_replication_config "$REDIS_CONF"
 
     echo "$REDIS_CONF"
 }
