@@ -27,12 +27,13 @@ init_database() {
         --logpath "$LOGDIR/mongod.log" &
     local pid=$!
 
-    # Wait for mongod to accept connections
+    # Wait for mongod to accept TCP connections (lightweight check, no mongosh to avoid OOM)
     local port="${MONGODB_PORT:-27017}"
     echo "Waiting for mongod to start on port $port..."
     for i in $(seq 1 60); do
-        if mongosh --quiet --port "$port" --serverSelectionTimeoutMS 5000 --eval "db.adminCommand('ping')" &>/dev/null; then
-            echo "mongod is ready."
+        if bash -c "echo > /dev/tcp/127.0.0.1/$port" 2>/dev/null; then
+            echo "mongod is accepting connections."
+            sleep 2  # give mongod a moment to finish initialization
             break
         fi
         if [ "$i" -eq 60 ]; then
