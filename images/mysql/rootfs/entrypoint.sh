@@ -306,6 +306,7 @@ if [ "$1" = "mysqld" ]; then
         --port="${MYSQL_PORT_NUMBER:-3306}" \
         --bind-address=0.0.0.0 \
         --socket=/var/run/mysqld/mysqld.sock \
+        --log-error-verbosity=1 \
         $REPL_FLAGS \
         $MYSQL_EXTRA_FLAGS \
         "$@"
