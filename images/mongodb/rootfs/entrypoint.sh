@@ -41,6 +41,22 @@ wait_for_tcp() {
     done
 }
 
+wait_for_host() {
+    local host="$1"
+    local port="$2"
+    local timeout="${3:-300}"
+    echo "Waiting for $host:$port..."
+    for i in $(seq 1 "$timeout"); do
+        if bash -c "echo > /dev/tcp/$host/$port" 2>/dev/null; then
+            echo "$host:$port is reachable."
+            return 0
+        fi
+        sleep 2
+    done
+    echo "ERROR: $host:$port not reachable after ${timeout}s"
+    return 1
+}
+
 init_replicaset() {
     local port="${MONGODB_PORT:-27017}"
     local init_marker="$DATADIR/.mongodb_rs_init_complete"
@@ -62,6 +78,14 @@ init_replicaset() {
 
     wait_for_tcp "$port" 120 || { kill "$pid" 2>/dev/null; exit 1; }
 
+    # Wait for all secondary hosts to be reachable before rs.initiate()
+    if [ -n "$MONGODB_SECONDARY_HOSTS" ]; then
+        IFS=',' read -ra HOSTS <<< "$MONGODB_SECONDARY_HOSTS"
+        for host in "${HOSTS[@]}"; do
+            wait_for_host "$host" "$port" 300 || { kill "$pid" 2>/dev/null; exit 1; }
+        done
+    fi
+
     # Build replica set member config
     local rs_members="[{_id: 0, host: '${MONGODB_INITIAL_PRIMARY_HOST}:${port}', priority: 2}"
     local member_id=1
@@ -76,8 +100,9 @@ init_replicaset() {
 
     local rs_name="${MONGODB_REPLICA_SET_NAME:-rs0}"
 
-    # rs.initiate() via localhost exception (idempotent)
-    mongosh --quiet --port "$port" admin <<EOJS
+    # rs.initiate() via localhost exception with retry (idempotent)
+    for attempt in $(seq 1 5); do
+        mongosh --quiet --port "$port" admin <<EOJS && break
 try {
   var status = rs.status();
   if (status.ok === 1) {
@@ -85,12 +110,15 @@ try {
   }
 } catch (e) {
   if (e.codeName === "NotYetInitialized") {
-    print("Initiating replica set '${rs_name}'...");
+    print("Initiating replica set '${rs_name}' (attempt ${attempt}/5)...");
     rs.initiate({_id: '${rs_name}', members: ${rs_members}});
     print("Replica set initiated.");
   } else { throw e; }
 }
 EOJS
+        echo "rs.initiate() attempt $attempt failed, retrying in 10s..."
+        sleep 10
+    done
 
     # Wait for PRIMARY election
     echo "Waiting for PRIMARY election..."
