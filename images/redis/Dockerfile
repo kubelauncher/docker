@@ -51,6 +51,9 @@ RUN chmod +x /opt/redis/entrypoint.sh \
 ENV REDIS_PORT="6379" \
     REDIS_EXTRA_FLAGS="" \
     REDIS_DISABLE_COMMANDS="" \
+    REDIS_REPLICATION_MODE="" \
+    REDIS_MASTER_HOST="" \
+    REDIS_MASTER_PORT="6379" \
     PATH="/opt/redis/bin:${PATH}"
 
 VOLUME ["/data"]
