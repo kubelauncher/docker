@@ -4,6 +4,14 @@ set -e
 DATADIR="${MONGODB_DATA_DIR:-/data/mongodb/data}"
 LOGDIR="${MONGODB_LOG_DIR:-/data/mongodb/logs}"
 
+needs_init() {
+    # Check if any initialization work is needed
+    [ -n "$MONGODB_ROOT_PASSWORD" ] && return 0
+    [ -n "$MONGODB_USERNAME" ] && [ -n "$MONGODB_PASSWORD" ] && [ -n "$MONGODB_DATABASE" ] && return 0
+    for f in /docker-entrypoint-initdb.d/*; do [ -f "$f" ] && return 0; done
+    return 1
+}
+
 init_database() {
     # Create runtime directories (PVC mount may overwrite them)
     mkdir -p "$DATADIR"
@@ -16,13 +24,20 @@ init_database() {
         return
     fi
 
+    if ! needs_init; then
+        echo "No users or init scripts to configure, skipping init."
+        touch "$init_marker"
+        return
+    fi
+
     echo "Initializing MongoDB..."
 
-    # Start mongod in background without auth for user creation
+    # Bind to 0.0.0.0 so kubelet probes can reach mongod during init
+    # (pod is not Ready yet so the Service won't route traffic)
     mongod \
         --dbpath "$DATADIR" \
         --port "${MONGODB_PORT:-27017}" \
-        --bind_ip 127.0.0.1 \
+        --bind_ip_all \
         --noauth \
         --logpath "$LOGDIR/mongod.log" &
     local pid=$!
