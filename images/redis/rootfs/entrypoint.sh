@@ -23,7 +23,7 @@ setup_redis_conf() {
     if [ -f "$REDIS_CONF" ]; then
         # If read-only OR we need to add replication config, copy to writable location
         if [ ! -w "$REDIS_CONF" ] || needs_replication_config; then
-            echo "Using existing read-only config: $REDIS_CONF"
+            echo "Using existing read-only config: $REDIS_CONF" >&2
             cp "$REDIS_CONF" "$REDIS_CONF_RUNTIME"
             append_replication_config "$REDIS_CONF_RUNTIME"
             echo "$REDIS_CONF_RUNTIME"
