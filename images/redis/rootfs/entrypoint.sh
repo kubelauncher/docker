@@ -8,6 +8,14 @@ needs_replication_config() {
     [ "$REDIS_REPLICATION_MODE" = "replica" ] && [ -n "$REDIS_MASTER_HOST" ]
 }
 
+needs_cluster_config() {
+    [ "$REDIS_CLUSTER_ENABLED" = "yes" ]
+}
+
+needs_runtime_config() {
+    needs_replication_config || needs_cluster_config
+}
+
 append_replication_config() {
     local conf="$1"
     if needs_replication_config; then
@@ -18,14 +26,27 @@ append_replication_config() {
     fi
 }
 
+append_cluster_config() {
+    local conf="$1"
+    if needs_cluster_config; then
+        echo "cluster-enabled yes" >> "$conf"
+        echo "cluster-config-file /data/nodes.conf" >> "$conf"
+        echo "cluster-node-timeout 15000" >> "$conf"
+        if [ -n "$REDIS_CLUSTER_BUS_PORT" ]; then
+            echo "cluster-announce-bus-port ${REDIS_CLUSTER_BUS_PORT}" >> "$conf"
+        fi
+    fi
+}
+
 setup_redis_conf() {
     # If config exists (e.g., Kubernetes ConfigMap)
     if [ -f "$REDIS_CONF" ]; then
         # If read-only OR we need to add replication config, copy to writable location
-        if [ ! -w "$REDIS_CONF" ] || needs_replication_config; then
-            echo "Using existing read-only config: $REDIS_CONF" >&2
+        if [ ! -w "$REDIS_CONF" ] || needs_runtime_config; then
+            echo "Using existing config, copying to writable location" >&2
             cp "$REDIS_CONF" "$REDIS_CONF_RUNTIME"
             append_replication_config "$REDIS_CONF_RUNTIME"
+            append_cluster_config "$REDIS_CONF_RUNTIME"
             echo "$REDIS_CONF_RUNTIME"
             return
         fi
@@ -63,6 +84,7 @@ EOF
     fi
 
     append_replication_config "$REDIS_CONF"
+    append_cluster_config "$REDIS_CONF"
 
     echo "$REDIS_CONF"
 }
