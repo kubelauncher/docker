@@ -69,21 +69,48 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Extract version from Dockerfile
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Extract version
         id: version
         run: |
-          DOCKERFILE="images/${{ matrix.image }}/Dockerfile"
-          VERSION=$(grep -oP 'ARG \w+_VERSION=\K[^\s]+' "$DOCKERFILE" | head -1)
+          IMAGE="${{ matrix.image }}"
+          DOCKERFILE="images/${IMAGE}/Dockerfile"
 
-          # Convert underscores to dots (for openldap: 2_6_9 → 2.6.9)
-          VERSION=$(echo "$VERSION" | tr '_' '.')
+          # Apt-based images: detect real installed version from built image
+          VERSION_CMD=""
+          case "$IMAGE" in
+            mongodb)    VERSION_CMD="mongod --version | grep -oP 'db version v\K[0-9.]+'" ;;
+            postgresql) VERSION_CMD="postgres --version | grep -oP '\) \K[0-9.]+'" ;;
+            mysql)      VERSION_CMD="mysqld --version | grep -oP 'Ver \K[0-9.]+'" ;;
+            openldap)   VERSION_CMD="slapd -VV 2>&1 | grep -oP 'slapd\s+\K[0-9.]+'" ;;
+          esac
 
-          # Normalize to semver (x.y.z format)
-          DOTS=$(echo "$VERSION" | tr -cd '.' | wc -c)
-          if [ "$DOTS" -eq 0 ]; then
-            VERSION="${VERSION}.0.0"  # 17 → 17.0.0
-          elif [ "$DOTS" -eq 1 ]; then
-            VERSION="${VERSION}.0"    # 8.0 → 8.0.0
+          if [ -n "$VERSION_CMD" ]; then
+            echo "::group::Building single-platform image for version detection"
+            docker buildx build --load --platform linux/amd64 \
+              --cache-from type=gha,scope=${IMAGE} \
+              --cache-to type=gha,mode=max,scope=${IMAGE} \
+              -t version-detect:latest "images/${IMAGE}"
+            echo "::endgroup::"
+
+            VERSION=$(docker run --rm --entrypoint "" version-detect:latest sh -c "$VERSION_CMD")
+            echo "::notice::Detected real version for ${IMAGE}: ${VERSION}"
+            docker rmi version-detect:latest 2>/dev/null || true
+          else
+            # Source-built images: use Dockerfile ARG
+            VERSION=$(grep -oP 'ARG \w+_VERSION=\K[^\s]+' "$DOCKERFILE" | head -1)
+            VERSION=$(echo "$VERSION" | tr '_' '.')
+
+            # Normalize to semver (x.y.z format)
+            DOTS=$(echo "$VERSION" | tr -cd '.' | wc -c)
+            if [ "$DOTS" -eq 0 ]; then
+              VERSION="${VERSION}.0.0"  # 17 → 17.0.0
+            elif [ "$DOTS" -eq 1 ]; then
+              VERSION="${VERSION}.0"    # 8.0 → 8.0.0
+            fi
           fi
 
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
@@ -91,10 +118,6 @@ jobs:
           MINOR=$(echo "$VERSION" | cut -d. -f1-2)
           echo "major=${MAJOR}" >> "$GITHUB_OUTPUT"
           echo "minor=${MINOR}" >> "$GITHUB_OUTPUT"
-
-      - uses: docker/setup-qemu-action@v3
-
-      - uses: docker/setup-buildx-action@v3
 
       - name: Login to GHCR
         if: github.event_name != 'pull_request'
