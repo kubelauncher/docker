@@ -47,17 +47,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull image
+      - name: Pull and save image
+        id: pull
         run: |
           IMAGE="ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest"
-          docker pull "${IMAGE}" || echo "Image not found, skipping"
+          if docker pull --platform linux/amd64 "${IMAGE}"; then
+            docker save "${IMAGE}" -o /tmp/image.tar
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Image ${IMAGE} not found, skipping scan"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Run Trivy vulnerability scanner
+        if: steps.pull.outputs.exists == 'true'
         uses: aquasecurity/trivy-action@0.34.0
-        env:
-          TRIVY_PLATFORM: linux/amd64
         with:
-          image-ref: "ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest"
+          input: "/tmp/image.tar"
           format: "sarif"
           output: "trivy-results.sarif"
           severity: "CRITICAL,HIGH"
@@ -66,7 +72,7 @@ jobs:
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && steps.pull.outputs.exists == 'true'
         with:
           sarif_file: "trivy-results.sarif"
 
