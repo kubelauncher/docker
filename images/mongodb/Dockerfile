@@ -19,7 +19,7 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg \
-    && curl -fsSL "https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc" \
+    && curl -fsSL "https://www.mongodb.org/static/pgp/server-8.0.asc" \
         | gpg --dearmor -o /usr/share/keyrings/mongodb.gpg \
     && echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb.gpg] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/${MONGODB_VERSION} multiverse" \
         > /etc/apt/sources.list.d/mongodb.list \
