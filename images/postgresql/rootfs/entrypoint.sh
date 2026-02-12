@@ -173,6 +173,11 @@ if [ "$1" = "postgres" ]; then
         init_database
     fi
 
+    # PostgreSQL requires 0700 on the data directory
+    if [ -d "$PGDATA" ]; then
+        chmod 0700 "$PGDATA"
+    fi
+
     shift
     exec "${PG_BIN_DIR}/postgres" -D "$PGDATA" -p "${POSTGRESQL_PORT_NUMBER:-5432}" "$@"
 fi
