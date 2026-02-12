@@ -54,6 +54,8 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.34.0
+        env:
+          TRIVY_PLATFORM: linux/amd64
         with:
           image-ref: "ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest"
           format: "sarif"
