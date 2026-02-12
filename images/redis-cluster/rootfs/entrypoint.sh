@@ -43,6 +43,18 @@ EOF
         fi
     fi
 
+    # Hostname-based cluster announcement (Redis 7+)
+    # When set, nodes use DNS hostnames instead of IPs in gossip,
+    # making the cluster resilient to pod IP changes on restart.
+    if [ -n "$REDIS_CLUSTER_ANNOUNCE_HOSTNAME" ]; then
+        if ! grep -q "^cluster-announce-hostname" "$conf"; then
+            echo "cluster-announce-hostname ${REDIS_CLUSTER_ANNOUNCE_HOSTNAME}" >> "$conf"
+        fi
+        if ! grep -q "^cluster-preferred-endpoint-type" "$conf"; then
+            echo "cluster-preferred-endpoint-type hostname" >> "$conf"
+        fi
+    fi
+
     if [ -n "$REDIS_CLUSTER_ANNOUNCE_IP" ]; then
         if ! grep -q "^cluster-announce-ip" "$conf"; then
             echo "cluster-announce-ip ${REDIS_CLUSTER_ANNOUNCE_IP}" >> "$conf"
