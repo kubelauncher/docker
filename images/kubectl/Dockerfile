@@ -2,7 +2,6 @@
 FROM ubuntu:24.04@sha256:cd1dba651b3080c3686ecf4e3c4220f026b521fb76978881737d24f200828b2b
 
 ARG KUBECTL_VERSION=1.35.1
-ARG YQ_VERSION=4.52.2
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.title="kubectl" \
@@ -27,8 +26,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && echo "$(cat /tmp/kubectl.sha256)  /usr/local/bin/kubectl" | sha256sum -c - \
     && chmod +x /usr/local/bin/kubectl \
     && rm /tmp/kubectl.sha256 \
-    && curl -fsSL "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${ARCH}" -o /usr/local/bin/yq \
-    && chmod +x /usr/local/bin/yq \
     && groupadd -r -g 1001 kubectl \
     && useradd -r -u 1001 -g kubectl -d /home/kubectl -m -s /bin/bash kubectl \
     && mkdir -p /home/kubectl/.kube \

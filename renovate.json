@@ -46,18 +46,6 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/images/kubectl/Dockerfile$/"
-      ],
-      "matchStrings": [
-        "ARG YQ_VERSION=(?<currentValue>\\S+)"
-      ],
-      "depNameTemplate": "mikefarah/yq",
-      "datasourceTemplate": "github-releases",
-      "extractVersionTemplate": "^v(?<version>.+)$"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
         "/images/rabbitmq/Dockerfile$/"
       ],
       "matchStrings": [
@@ -207,13 +195,6 @@
       ],
       "allowedVersions": "!/alpha|beta|rc/",
       "groupName": "kubectl",
-      "automerge": true
-    },
-    {
-      "matchPackageNames": [
-        "mikefarah/yq"
-      ],
-      "groupName": "yq",
       "automerge": true
     },
     {

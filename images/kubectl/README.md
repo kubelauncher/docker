@@ -2,7 +2,7 @@
 
 > Built by [KubeLauncher](https://www.kubelauncher.com) — production-grade, open-source, community-first.
 
-Lightweight kubectl CLI utility image based on Ubuntu 24.04. Includes commonly used Kubernetes tooling: `jq`, `yq`, `git`, `envsubst`, and `bash`. SHA256-verified kubectl binary. Designed for Kubernetes, built for everyone.
+Lightweight kubectl CLI utility image based on Ubuntu 24.04. Includes commonly used Kubernetes tooling: `jq`, `git`, `envsubst`, and `bash`. SHA256-verified kubectl binary. Designed for Kubernetes, built for everyone.
 
 ## Supported Tags
 
@@ -30,7 +30,6 @@ docker run --rm \
 |------|-------------|
 | `kubectl` | Kubernetes CLI (v1.35.0) |
 | `jq` | JSON processor |
-| `yq` | YAML processor (v4.52.2) |
 | `git` | Version control |
 | `envsubst` | Environment variable substitution |
 | `bash` | Shell |
