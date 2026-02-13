@@ -30,6 +30,11 @@ EOF
         done
     fi
 
+    # Append extra configuration (e.g., metricsProvider)
+    if [ -n "$ZOO_CFG_EXTRA" ]; then
+        printf '%b\n' "$ZOO_CFG_EXTRA" >> "$ZK_CONFIG"
+    fi
+
     # Extract numeric ID from pod name (e.g., zk-0 -> 1, zk-1 -> 2)
     local my_id="${ZOO_MY_ID:-1}"
     if [[ "$my_id" =~ -([0-9]+)$ ]]; then
