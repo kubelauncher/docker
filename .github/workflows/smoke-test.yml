@@ -227,9 +227,9 @@ jobs:
               curl -sf http://localhost:9104/metrics | grep -q mysqld_exporter_build_info
               ;;
             mongodb-exporter)
-              docker run -d --name test -p 9216:9216 ${IMAGE}
+              docker run -d --name test -p 9216:9216 -e MONGODB_URI=mongodb://localhost:27017 ${IMAGE}
               sleep 3
-              curl -sf http://localhost:9216/metrics | grep -q go_info
+              curl -sf http://localhost:9216/metrics | grep -q mongodb_exporter_build_info
               ;;
             memcached-exporter)
               docker run -d --name test -p 9150:9150 ${IMAGE} --memcached.address=localhost:11211
