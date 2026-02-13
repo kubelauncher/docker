@@ -75,10 +75,13 @@ init_replication_secondary() {
         sleep 1
     done
 
-    # Set root password
+    # Set root password and clean up default users
     if [ -n "$MARIADB_ROOT_PASSWORD" ]; then
         mariadb --socket=/run/mysqld/mysqld.sock -u root <<EOSQL
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${MARIADB_ROOT_PASSWORD}';
+CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${MARIADB_ROOT_PASSWORD}';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+DELETE FROM mysql.user WHERE user='root' AND host NOT IN ('localhost', '%');
 FLUSH PRIVILEGES;
 EOSQL
     fi
@@ -136,6 +139,8 @@ EOSQL
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${MARIADB_ROOT_PASSWORD}';
 CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${MARIADB_ROOT_PASSWORD}';
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+DELETE FROM mysql.user WHERE user='root' AND host NOT IN ('localhost', '%');
+FLUSH PRIVILEGES;
 EOSQL
     fi
 
