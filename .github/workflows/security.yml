@@ -1,14 +1,10 @@
 name: Security Scan
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Build and Push Docker Images"]
+    types: [completed]
     branches: [main]
-    paths:
-      - "images/**"
-  pull_request:
-    branches: [main]
-    paths:
-      - "images/**"
   schedule:
     # Daily at 6 AM UTC - scan for new CVEs
     - cron: "0 6 * * *"
@@ -21,6 +17,7 @@ permissions:
 jobs:
   detect-images:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
