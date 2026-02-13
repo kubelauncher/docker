@@ -307,6 +307,7 @@ if [ "$1" = "mysqld" ]; then
         --bind-address=0.0.0.0 \
         --socket=/var/run/mysqld/mysqld.sock \
         --log-error-verbosity=1 \
+        --skip-name-resolve \
         $REPL_FLAGS \
         $MYSQL_EXTRA_FLAGS \
         "$@"
