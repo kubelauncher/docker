@@ -207,6 +207,35 @@ jobs:
               docker run --name test ${IMAGE} version --client
               docker logs test | grep -q "Client Version"
               ;;
+            redis-exporter)
+              docker run -d --name test -p 9121:9121 ${IMAGE} --redis.addr=redis://localhost:6379
+              sleep 3
+              curl -sf http://localhost:9121/metrics | grep -q redis_exporter_build_info
+              ;;
+            postgres-exporter)
+              docker run -d --name test -p 9187:9187 \
+                -e DATA_SOURCE_URI="localhost:5432/postgres?sslmode=disable" \
+                -e DATA_SOURCE_USER=postgres \
+                -e DATA_SOURCE_PASS=unused \
+                ${IMAGE}
+              sleep 3
+              curl -sf http://localhost:9187/metrics | grep -q postgres_exporter_build_info
+              ;;
+            mysqld-exporter)
+              docker run -d --name test -p 9104:9104 ${IMAGE} --mysqld.address=127.0.0.1:3306 --mysqld.username=root
+              sleep 3
+              curl -sf http://localhost:9104/metrics | grep -q mysqld_exporter_build_info
+              ;;
+            mongodb-exporter)
+              docker run -d --name test -p 9216:9216 ${IMAGE}
+              sleep 3
+              curl -sf http://localhost:9216/metrics | grep -q go_info
+              ;;
+            memcached-exporter)
+              docker run -d --name test -p 9150:9150 ${IMAGE} --memcached.address=localhost:11211
+              sleep 3
+              curl -sf http://localhost:9150/metrics | grep -q memcached_exporter_build_info
+              ;;
             *)
               echo "Unknown image: ${{ matrix.image }}"
               exit 1
