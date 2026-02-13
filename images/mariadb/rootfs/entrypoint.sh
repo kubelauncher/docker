@@ -239,6 +239,7 @@ if [ "$1" = "mariadbd" ]; then
         --bind-address=0.0.0.0 \
         --socket=/run/mysqld/mysqld.sock \
         --log-warnings=1 \
+        --skip-name-resolve \
         $REPL_FLAGS \
         $MARIADB_EXTRA_FLAGS \
         "$@"
