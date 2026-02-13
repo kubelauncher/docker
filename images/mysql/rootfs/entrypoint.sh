@@ -90,10 +90,14 @@ init_replication_secondary() {
         sleep 1
     done
 
-    # Set root password and configure replication
+    # Set root password, clean up default users, configure replication
     mysql --socket=/var/run/mysqld/mysqld.sock -u root <<EOSQL
 FLUSH PRIVILEGES;
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+DELETE FROM mysql.user WHERE user='root' AND host NOT IN ('localhost', '%');
+FLUSH PRIVILEGES;
 CHANGE MASTER TO
     MASTER_HOST='${MYSQL_MASTER_HOST}',
     MASTER_PORT=${MYSQL_MASTER_PORT:-3306},
@@ -210,6 +214,8 @@ EOSQL
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
 CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+DELETE FROM mysql.user WHERE user='root' AND host NOT IN ('localhost', '%');
+FLUSH PRIVILEGES;
 EOSQL
     fi
 
