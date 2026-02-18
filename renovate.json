@@ -163,6 +163,18 @@
       "datasourceTemplate": "github-tags",
       "extractVersionTemplate": "^OPENLDAP_REL_ENG_(?<version>[\\d_]+)$",
       "versioningTemplate": "regex:^(?<major>\\d+)_(?<minor>\\d+)_(?<patch>\\d+)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/images/etcd/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG ETCD_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "etcd-io/etcd",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ],
   "packageRules": [
@@ -270,6 +282,14 @@
         "openldap/openldap"
       ],
       "groupName": "openldap",
+      "automerge": true
+    },
+    {
+      "matchPackageNames": [
+        "etcd-io/etcd"
+      ],
+      "allowedVersions": "!/alpha|beta|rc/",
+      "groupName": "etcd",
       "automerge": true
     }
   ]
