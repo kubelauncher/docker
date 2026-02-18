@@ -34,16 +34,13 @@ COPY rootfs/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENV ETCD_DATA_DIR="/data/etcd" \
-    ETCD_NAME="" \
     ETCD_LISTEN_CLIENT_URLS="http://0.0.0.0:2379" \
-    ETCD_ADVERTISE_CLIENT_URLS="http://0.0.0.0:2379" \
+    ETCD_ADVERTISE_CLIENT_URLS="http://127.0.0.1:2379" \
     ETCD_LISTEN_PEER_URLS="http://0.0.0.0:2380" \
-    ETCD_INITIAL_ADVERTISE_PEER_URLS="http://0.0.0.0:2380" \
-    ETCD_INITIAL_CLUSTER="" \
+    ETCD_INITIAL_ADVERTISE_PEER_URLS="http://127.0.0.1:2380" \
+    ETCD_INITIAL_CLUSTER="default=http://127.0.0.1:2380" \
     ETCD_INITIAL_CLUSTER_STATE="new" \
-    ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster" \
-    ETCD_LISTEN_METRICS_URLS="" \
-    ETCD_EXTRA_FLAGS=""
+    ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster"
 
 VOLUME ["/data/etcd"]
 EXPOSE 2379 2380
