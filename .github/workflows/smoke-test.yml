@@ -171,6 +171,13 @@ jobs:
               sleep 10
               docker exec test bash -c 'echo ruok | nc localhost 2181' | grep -q imok
               ;;
+            etcd)
+              docker run -d --name test -p 2379:2379 ${IMAGE}
+              sleep 5
+              docker exec test etcdctl --endpoints=http://127.0.0.1:2379 endpoint health
+              docker exec test etcdctl --endpoints=http://127.0.0.1:2379 put smoketest ok
+              docker exec test etcdctl --endpoints=http://127.0.0.1:2379 get smoketest | grep -q ok
+              ;;
             cassandra)
               docker run -d --name test -p 9042:9042 \
                 -e CASSANDRA_MAX_HEAP_SIZE=512M \
