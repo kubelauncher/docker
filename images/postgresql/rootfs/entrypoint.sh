@@ -173,6 +173,15 @@ if [ "$1" = "postgres" ]; then
         init_database
     fi
 
+    # Apply custom postgresql.conf configuration
+    if [ -n "$POSTGRESQL_EXTRA_CONF" ]; then
+        mkdir -p "$PGDATA/conf.d"
+        echo "$POSTGRESQL_EXTRA_CONF" > "$PGDATA/conf.d/custom.conf"
+        if ! grep -q "include_dir = 'conf.d'" "$PGDATA/postgresql.conf" 2>/dev/null; then
+            echo "include_dir = 'conf.d'" >> "$PGDATA/postgresql.conf"
+        fi
+    fi
+
     # PostgreSQL requires 0700 on the data directory
     if [ -d "$PGDATA" ]; then
         chmod 0700 "$PGDATA"
