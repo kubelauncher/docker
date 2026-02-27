@@ -307,20 +307,21 @@ if [ "$1" = "mysqld" ]; then
             ;;
     esac
     # Apply custom my.cnf configuration
+    EXTRA_FILE_FLAG=""
     if [ -n "$MYSQL_EXTRA_CONF" ]; then
-        mkdir -p /etc/mysql/conf.d
-        echo "$MYSQL_EXTRA_CONF" > /etc/mysql/conf.d/custom.cnf
+        printf '[mysqld]\n%s\n' "$MYSQL_EXTRA_CONF" > /tmp/custom.cnf
+        EXTRA_FILE_FLAG="--defaults-extra-file=/tmp/custom.cnf"
     fi
 
     shift
     exec mysqld \
+        $EXTRA_FILE_FLAG \
         --datadir="$DATADIR" \
         --port="${MYSQL_PORT_NUMBER:-3306}" \
         --bind-address=0.0.0.0 \
         --socket=/var/run/mysqld/mysqld.sock \
         --log-error-verbosity=1 \
         --skip-name-resolve \
-        ${MYSQL_EXTRA_CONF:+--defaults-extra-file=/etc/mysql/conf.d/custom.cnf} \
         $REPL_FLAGS \
         $MYSQL_EXTRA_FLAGS \
         "$@"
