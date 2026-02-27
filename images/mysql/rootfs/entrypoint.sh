@@ -306,6 +306,12 @@ if [ "$1" = "mysqld" ]; then
             init_database
             ;;
     esac
+    # Apply custom my.cnf configuration
+    if [ -n "$MYSQL_EXTRA_CONF" ]; then
+        mkdir -p /etc/mysql/conf.d
+        echo "$MYSQL_EXTRA_CONF" > /etc/mysql/conf.d/custom.cnf
+    fi
+
     shift
     exec mysqld \
         --datadir="$DATADIR" \
@@ -314,6 +320,7 @@ if [ "$1" = "mysqld" ]; then
         --socket=/var/run/mysqld/mysqld.sock \
         --log-error-verbosity=1 \
         --skip-name-resolve \
+        ${MYSQL_EXTRA_CONF:+--defaults-extra-file=/etc/mysql/conf.d/custom.cnf} \
         $REPL_FLAGS \
         $MYSQL_EXTRA_FLAGS \
         "$@"

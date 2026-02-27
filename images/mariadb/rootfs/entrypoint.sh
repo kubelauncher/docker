@@ -237,6 +237,12 @@ if [ "$1" = "mariadbd" ]; then
             ;;
     esac
 
+    # Apply custom my.cnf configuration
+    if [ -n "$MARIADB_EXTRA_CONF" ]; then
+        mkdir -p /etc/mysql/conf.d
+        echo "$MARIADB_EXTRA_CONF" > /etc/mysql/conf.d/custom.cnf
+    fi
+
     exec mariadbd \
         --user=mariadb \
         --datadir="$DATADIR" \
@@ -245,6 +251,7 @@ if [ "$1" = "mariadbd" ]; then
         --socket=/run/mysqld/mysqld.sock \
         --log-warnings=1 \
         --skip-name-resolve \
+        ${MARIADB_EXTRA_CONF:+--defaults-extra-file=/etc/mysql/conf.d/custom.cnf} \
         $REPL_FLAGS \
         $MARIADB_EXTRA_FLAGS \
         "$@"
