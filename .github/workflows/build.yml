@@ -45,7 +45,7 @@ jobs:
           CHANGED_IMAGES=()
           for dir in images/*/; do
             image=$(basename "$dir")
-            if git diff --name-only HEAD~1 HEAD -- "$dir" .github/workflows/build.yml | grep -q .; then
+            if git diff --name-only HEAD~1 HEAD -- "$dir" | grep -q .; then
               CHANGED_IMAGES+=("\"${image}\"")
             fi
           done
