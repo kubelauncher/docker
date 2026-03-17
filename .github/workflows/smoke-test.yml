@@ -236,11 +236,11 @@ jobs:
             mongodb-exporter)
               docker run -d --name test -p 9216:9216 -e MONGODB_URI=mongodb://localhost:27017 ${IMAGE}
               for i in $(seq 1 10); do
-                curl -sf --max-time 5 http://localhost:9216/metrics | grep -q mongodb_exporter_build_info && break
+                curl -sf --max-time 5 http://localhost:9216/metrics | grep -q mongodb_up && break
                 echo "Waiting for mongodb-exporter to serve metrics... ($i/10)"
                 sleep 3
               done
-              curl -sf --max-time 5 http://localhost:9216/metrics | grep -q mongodb_exporter_build_info
+              curl -sf --max-time 5 http://localhost:9216/metrics | grep -q mongodb_up
               ;;
             memcached-exporter)
               docker run -d --name test -p 9150:9150 ${IMAGE} --memcached.address=localhost:11211
