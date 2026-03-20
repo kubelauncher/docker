@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:24.04@sha256:186072bba1b2f436cbb91ef2567abca677337cfc786c86e107d25b7072feef0c
 
-ARG ETCD_VERSION=3.6.8
+ARG ETCD_VERSION=3.6.9
 
 LABEL org.opencontainers.image.title="etcd" \
       org.opencontainers.image.description="etcd packaged with love by KubeLauncher" \
