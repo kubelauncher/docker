@@ -21,7 +21,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - id: set-matrix
         run: |
@@ -35,10 +35,10 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.detect-images.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.6
+        uses: aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514 # v0.2.6
 
       - name: Run Trivy vulnerability scanner
         env:
@@ -53,7 +53,7 @@ jobs:
             "${IMAGE}"
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc # v4
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: "trivy-results.sarif"
@@ -61,20 +61,21 @@ jobs:
   trivy-config-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514 # v0.2.6
 
       - name: Run Trivy config scanner on Dockerfiles
-        uses: aquasecurity/trivy-action@0.35.0
-        with:
-          scan-type: "config"
-          scan-ref: "."
-          format: "sarif"
-          output: "trivy-config.sarif"
-          severity: "CRITICAL,HIGH,MEDIUM"
-          trivyignores: ".trivyignore"
+        run: |
+          trivy config \
+            --format sarif --output trivy-config.sarif \
+            --severity CRITICAL,HIGH,MEDIUM \
+            --ignorefile .trivyignore \
+            .
 
       - name: Upload config scan results
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc # v4
         if: always() && hashFiles('trivy-config.sarif') != ''
         with:
           sarif_file: "trivy-config.sarif"
