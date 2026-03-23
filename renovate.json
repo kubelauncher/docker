@@ -291,6 +291,10 @@
       "allowedVersions": "!/alpha|beta|rc/",
       "groupName": "etcd",
       "automerge": true
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "automerge": false
     }
   ]
 }
