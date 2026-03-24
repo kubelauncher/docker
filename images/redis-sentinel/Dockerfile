@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:24.04@sha256:186072bba1b2f436cbb91ef2567abca677337cfc786c86e107d25b7072feef0c AS builder
 
-ARG REDIS_VERSION=8.6.1
+ARG REDIS_VERSION=8.6.2
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 FROM ubuntu:24.04@sha256:186072bba1b2f436cbb91ef2567abca677337cfc786c86e107d25b7072feef0c
 
-ARG REDIS_VERSION=8.6.1
+ARG REDIS_VERSION=8.6.2
 
 LABEL org.opencontainers.image.title="redis-sentinel" \
       org.opencontainers.image.description="redis-sentinel packaged with love by KubeLauncher" \
