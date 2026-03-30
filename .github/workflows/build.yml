@@ -187,7 +187,7 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
           IMAGE: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
         run: |
-          curl -sSfL "https://raw.githubusercontent.com/anchore/syft/v1.42.3/install.sh" | sh -s -- -b /usr/local/bin v1.42.3
+          curl -sSfL "https://raw.githubusercontent.com/anchore/syft/860126c650c2d05b63b83a3895e41268162315a3/install.sh" | sh -s -- -b /usr/local/bin v1.42.3
           syft "${IMAGE}@${DIGEST}" --platform linux/amd64 -o spdx-json=sbom.spdx.json
 
       - name: Attest SBOM
