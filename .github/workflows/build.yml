@@ -157,6 +157,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
@@ -164,11 +165,19 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
 
-      - name: Sign container image
+      - name: Sign GHCR image
         if: github.event_name != 'pull_request'
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
           IMAGE: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+        run: |
+          cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      - name: Sign Docker Hub image
+        if: github.event_name != 'pull_request'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE: docker.io/${{ github.repository_owner }}/${{ matrix.image }}
         run: |
           cosign sign --yes "${IMAGE}@${DIGEST}"
 
@@ -178,7 +187,7 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
           IMAGE: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
         run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          curl -sSfL "https://raw.githubusercontent.com/anchore/syft/v1.42.3/install.sh" | sh -s -- -b /usr/local/bin v1.42.3
           syft "${IMAGE}@${DIGEST}" --platform linux/amd64 -o spdx-json=sbom.spdx.json
 
       - name: Attest SBOM
