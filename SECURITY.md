@@ -14,7 +14,7 @@ For critical vulnerabilities, use GitHub's private vulnerability reporting featu
 
 ## Security Measures
 
-- Images scanned with [Trivy](https://trivy.dev/) on every build
+- Images scanned with [Grype](https://github.com/anchore/grype) on every build
 - Artifacts signed with [Cosign](https://docs.sigstore.dev/cosign/overview/)
 - Non-root containers (UID 1001)
 - Automated dependency updates via Renovate
