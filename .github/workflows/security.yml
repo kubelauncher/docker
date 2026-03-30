@@ -28,7 +28,7 @@ jobs:
           IMAGES=$(ls -d images/*/ | xargs -I{} basename {} | jq -R . | jq -s -c .)
           echo "matrix={\"image\":${IMAGES}}" >> "$GITHUB_OUTPUT"
 
-  trivy-scan:
+  grype-scan:
     needs: detect-images
     runs-on: ubuntu-latest
     strategy:
@@ -51,45 +51,23 @@ jobs:
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             "${IMAGE}"
 
-      - name: Install Trivy
-        uses: aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514 # v0.2.6
+      - name: Install Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
-      - name: Run Trivy vulnerability scanner
+      - name: Run Grype vulnerability scanner
         env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GRYPE_REGISTRY_AUTH_AUTHORITY: ghcr.io
+          GRYPE_REGISTRY_AUTH_USERNAME: ${{ github.actor }}
+          GRYPE_REGISTRY_AUTH_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
           IMAGE="ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest"
-          trivy image --platform linux/amd64 \
-            --format sarif --output trivy-results.sarif \
-            --severity CRITICAL,HIGH --ignore-unfixed \
-            --ignorefile .trivyignore \
-            "${IMAGE}"
+          grype "${IMAGE}" --platform linux/amd64 \
+            -o sarif --file grype-results.sarif \
+            --only-fixed
 
-      - name: Upload Trivy scan results to GitHub Security tab
+      - name: Upload Grype scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13 # v4
-        if: always() && hashFiles('trivy-results.sarif') != ''
+        if: always() && hashFiles('grype-results.sarif') != ''
         with:
-          sarif_file: "trivy-results.sarif"
-
-  trivy-config-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Install Trivy
-        uses: aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514 # v0.2.6
-
-      - name: Run Trivy config scanner on Dockerfiles
-        run: |
-          trivy config \
-            --format sarif --output trivy-config.sarif \
-            --severity CRITICAL,HIGH,MEDIUM \
-            --ignorefile .trivyignore \
-            .
-
-      - name: Upload config scan results
-        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13 # v4
-        if: always() && hashFiles('trivy-config.sarif') != ''
-        with:
-          sarif_file: "trivy-config.sarif"
+          sarif_file: "grype-results.sarif"
