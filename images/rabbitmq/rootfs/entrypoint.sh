@@ -54,9 +54,20 @@ if [ "$1" = "rabbitmq-server" ]; then
     setup_rabbitmq
     echo "Starting RabbitMQ server..."
     shift
-    # Bypass /usr/sbin/rabbitmq-server wrapper which hardcodes stdout redirect
-    # to /var/log/rabbitmq/startup_log. Call the real binary directly.
-    exec /usr/lib/rabbitmq/bin/rabbitmq-server "$@"
+    # Locate the rabbitmq-server binary. Path differs between Ubuntu apt install
+    # (/usr/lib/rabbitmq/bin) and the official image (/opt/rabbitmq/sbin); also
+    # rabbitmq upstream may ship additional variants, so resolve dynamically.
+    RMQ_BIN=""
+    for candidate in /opt/rabbitmq/sbin/rabbitmq-server /usr/lib/rabbitmq/bin/rabbitmq-server; do
+        if [ -x "$candidate" ]; then
+            RMQ_BIN="$candidate"
+            break
+        fi
+    done
+    if [ -z "$RMQ_BIN" ]; then
+        RMQ_BIN="$(command -v rabbitmq-server)"
+    fi
+    exec "$RMQ_BIN" "$@"
 fi
 
 exec "$@"
