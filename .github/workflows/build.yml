@@ -161,6 +161,34 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
+      - name: Verify multi-arch manifest
+        if: github.event_name != 'pull_request'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+        run: |
+          # Guard against regressions where a single-platform manifest gets
+          # pushed under a multi-arch tag (happened once for mysql + rabbitmq,
+          # broke arm64 consumers with "no match for platform in manifest").
+          # Refuse to sign/publish anything that is not a proper OCI index
+          # containing both linux/amd64 and linux/arm64.
+          set -euo pipefail
+          TOKEN="$(curl -sf "https://ghcr.io/token?scope=repository:${{ github.repository_owner }}/${{ matrix.image }}:pull" | jq -r .token)"
+          MANIFEST="$(curl -sf "https://ghcr.io/v2/${{ github.repository_owner }}/${{ matrix.image }}/manifests/${DIGEST}" \
+              -H "Accept: application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json" \
+              -H "Authorization: Bearer $TOKEN")"
+          MEDIA_TYPE="$(echo "$MANIFEST" | jq -r .mediaType)"
+          case "$MEDIA_TYPE" in
+            application/vnd.oci.image.index.v1+json|application/vnd.docker.distribution.manifest.list.v2+json) ;;
+            *) echo "::error::${IMAGE}@${DIGEST} is a single-platform manifest ($MEDIA_TYPE), expected an OCI image index"; exit 1 ;;
+          esac
+          PLATFORMS="$(echo "$MANIFEST" | jq -r '[.manifests[].platform | select(.architecture != "unknown") | "\(.os)/\(.architecture)"] | sort | unique | join(",")')"
+          echo "Published platforms: $PLATFORMS"
+          for required in linux/amd64 linux/arm64; do
+            echo "$PLATFORMS" | tr ',' '\n' | grep -qx "$required" \
+              || { echo "::error::${IMAGE}@${DIGEST} missing required platform $required (got: $PLATFORMS)"; exit 1; }
+          done
+
       - name: Install cosign
         if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
