@@ -19,22 +19,35 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg bash tzdata \
-    && curl -fsSL https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key \
-        | gpg --dearmor -o /usr/share/keyrings/rabbitmq-erlang.gpg \
-    && curl -fsSL https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key \
-        | gpg --dearmor -o /usr/share/keyrings/rabbitmq-server.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/rabbitmq-erlang.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/ubuntu noble main" \
+    && curl -1sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" \
+        | gpg --dearmor -o /usr/share/keyrings/com.rabbitmq.team.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://deb1.rabbitmq.com/rabbitmq-erlang/ubuntu/noble noble main" \
         > /etc/apt/sources.list.d/rabbitmq-erlang.list \
-    && echo "deb [signed-by=/usr/share/keyrings/rabbitmq-server.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-server/deb/ubuntu noble main" \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://deb2.rabbitmq.com/rabbitmq-erlang/ubuntu/noble noble main" \
+        >> /etc/apt/sources.list.d/rabbitmq-erlang.list \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://deb1.rabbitmq.com/rabbitmq-server/ubuntu/noble noble main" \
         > /etc/apt/sources.list.d/rabbitmq-server.list \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://deb2.rabbitmq.com/rabbitmq-server/ubuntu/noble noble main" \
+        >> /etc/apt/sources.list.d/rabbitmq-server.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends \
-        erlang-base erlang-asn1 erlang-crypto erlang-eldap \
+    && ERLANG_PKGS="erlang-base erlang-asn1 erlang-crypto erlang-eldap \
         erlang-ftp erlang-inets erlang-mnesia erlang-os-mon \
         erlang-parsetools erlang-public-key erlang-runtime-tools \
         erlang-snmp erlang-ssl erlang-syntax-tools \
-        erlang-tftp erlang-tools erlang-xmerl \
-    && apt-get install -y --no-install-recommends rabbitmq-server \
+        erlang-tftp erlang-tools erlang-xmerl" \
+    && ERLANG_SPECS="" \
+    && for pkg in $ERLANG_PKGS; do \
+         ver="$(apt-cache madison "$pkg" | awk -F'|' '/rabbitmq.com/ {gsub(/ /,"",$2); print $2; exit}')"; \
+         if [ -z "$ver" ]; then echo "ERROR: $pkg not found in RabbitMQ upstream repo" >&2; exit 1; fi; \
+         ERLANG_SPECS="$ERLANG_SPECS $pkg=$ver"; \
+       done \
+    && apt-get install -y --no-install-recommends $ERLANG_SPECS \
+    && RABBIT_VER="$(apt-cache madison rabbitmq-server | awk -F'|' '/rabbitmq.com/ {gsub(/ /,"",$2); print $2; exit}')" \
+    && case "${RABBIT_VER}" in \
+         "${RABBITMQ_VERSION}"|"${RABBITMQ_VERSION}-"*) ;; \
+         *) echo "ERROR: upstream ships rabbitmq-server ${RABBIT_VER}, expected ${RABBITMQ_VERSION}" >&2; exit 1 ;; \
+       esac \
+    && apt-get install -y --no-install-recommends "rabbitmq-server=${RABBIT_VER}" \
     && rabbitmq-plugins enable --offline rabbitmq_management rabbitmq_prometheus \
     && mkdir -p /data/rabbitmq/conf \
                /data/rabbitmq/data \
