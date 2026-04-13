@@ -148,22 +148,12 @@ jobs:
             type=raw,value=latest
             type=sha
 
-      - name: Determine platforms
-        id: platforms
-        run: |
-          # RabbitMQ upstream repo only ships amd64 for erlang; Ubuntu noble
-          # ships erlang 25 which is too old for RabbitMQ 4.x.
-          case "${{ matrix.image }}" in
-            rabbitmq) echo "platforms=linux/amd64" >> "$GITHUB_OUTPUT" ;;
-            *)        echo "platforms=linux/amd64,linux/arm64" >> "$GITHUB_OUTPUT" ;;
-          esac
-
       - name: Build and push
         id: build
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
         with:
           context: images/${{ matrix.image }}
-          platforms: ${{ steps.platforms.outputs.platforms }}
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
