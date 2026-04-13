@@ -23,9 +23,14 @@ RUN MARIADB_MINOR=$(echo "${MARIADB_VERSION}" | cut -d. -f1-2) \
     && echo "deb [signed-by=/etc/apt/keyrings/mariadb-keyring.pgp] https://deb.mariadb.org/${MARIADB_MINOR}/ubuntu noble main" \
         > /etc/apt/sources.list.d/mariadb.list \
     && apt-get update \
+    && MARIADB_PKG_VER="$(apt-cache madison mariadb-server | awk -F'|' '/mariadb/ {gsub(/ /,"",$2); print $2; exit}')" \
+    && case "${MARIADB_PKG_VER}" in \
+         *"${MARIADB_VERSION}"*) ;; \
+         *) echo "ERROR: upstream ships mariadb-server ${MARIADB_PKG_VER}, expected ${MARIADB_VERSION}" >&2; exit 1 ;; \
+       esac \
     && apt-get install -y --no-install-recommends \
-        mariadb-server \
-        mariadb-client \
+        "mariadb-server=${MARIADB_PKG_VER}" \
+        "mariadb-client=${MARIADB_PKG_VER}" \
         tzdata \
         bash \
     && mkdir -p /data/mariadb/data \
