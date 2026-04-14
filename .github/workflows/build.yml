@@ -225,3 +225,16 @@ jobs:
           IMAGE: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
         run: |
           cosign attest --yes --predicate sbom.spdx.json --type spdxjson "${IMAGE}@${DIGEST}"
+
+      - name: Upload SBOM to Dependency-Track
+        if: github.event_name != 'pull_request'
+        env:
+          DTRACK_URL: https://dependency-track.phamitservices.com
+          DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
+        run: |
+          curl -sSf -X POST "${DTRACK_URL}/api/v1/bom" \
+            -H "X-Api-Key: ${DTRACK_API_KEY}" \
+            -F "autoCreate=true" \
+            -F "projectName=${{ matrix.image }}" \
+            -F "projectVersion=${{ steps.version.outputs.version }}" \
+            -F "bom=@sbom.spdx.json"
