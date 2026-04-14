@@ -226,6 +226,14 @@ jobs:
         run: |
           cosign attest --yes --predicate sbom.spdx.json --type spdxjson "${IMAGE}@${DIGEST}"
 
+      - name: Generate CycloneDX SBOM for Dependency-Track
+        if: github.event_name != 'pull_request'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+        run: |
+          syft "${IMAGE}@${DIGEST}" --platform linux/amd64 -o cyclonedx-json=sbom.cdx.json
+
       - name: Upload SBOM to Dependency-Track
         if: github.event_name != 'pull_request'
         env:
@@ -234,7 +242,7 @@ jobs:
         run: |
           python3 -c "
           import base64, json
-          with open('sbom.spdx.json', 'rb') as f:
+          with open('sbom.cdx.json', 'rb') as f:
               bom = base64.b64encode(f.read()).decode()
           payload = json.dumps({'autoCreate': True, 'projectName': '${{ matrix.image }}', 'projectVersion': '${{ steps.version.outputs.version }}', 'bom': bom})
           with open('dtrack-payload.json', 'w') as f:
