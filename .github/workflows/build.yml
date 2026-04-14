@@ -232,7 +232,8 @@ jobs:
           DTRACK_URL: https://dependency-track.phamitservices.com
           DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
         run: |
-          jq -n --arg bom "$(base64 -w0 sbom.spdx.json)" \
+          base64 -w0 sbom.spdx.json > sbom.b64
+          jq -n --rawfile bom sbom.b64 \
             '{autoCreate: true, projectName: "${{ matrix.image }}", projectVersion: "${{ steps.version.outputs.version }}", bom: $bom}' > dtrack-payload.json
           curl -sSf -X PUT "${DTRACK_URL}/api/v1/bom" \
             -H "X-Api-Key: ${DTRACK_API_KEY}" \
