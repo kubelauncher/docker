@@ -13,6 +13,20 @@ setup_rabbitmq() {
     # Create required directories
     mkdir -p "$RABBITMQ_MNESIA_BASE" "$RABBITMQ_LOG_BASE"
 
+    # ── Handle major-version upgrades (e.g. 3.12 → 4.x) ────────────────
+    # RabbitMQ 4.x requires certain feature flags (e.g. stream_filtering)
+    # to be enabled BEFORE the upgrade.  When existing Mnesia data comes
+    # from a pre-4.x version, the server refuses to boot.
+    # Setting RABBITMQ_FORCE_RESET=true wipes the Mnesia database so the
+    # node can start fresh.  This loses existing queues and messages.
+    if [ -d "$RABBITMQ_MNESIA_BASE" ] && [ "$(ls -A "$RABBITMQ_MNESIA_BASE" 2>/dev/null)" ]; then
+        if [ "${RABBITMQ_FORCE_RESET:-false}" = "true" ]; then
+            echo "WARNING: RABBITMQ_FORCE_RESET is enabled — clearing Mnesia data at $RABBITMQ_MNESIA_BASE for clean bootstrap..."
+            rm -rf "${RABBITMQ_MNESIA_BASE:?}/"*
+            echo "Mnesia data cleared."
+        fi
+    fi
+
     local conf="/etc/rabbitmq/rabbitmq.conf"
     # Skip config generation if file exists and is read-only (ConfigMap mount)
     if [ -f "$conf" ] && [ ! -w "$conf" ]; then
