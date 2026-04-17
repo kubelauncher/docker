@@ -33,6 +33,25 @@ setup_config() {
              /data/cassandra/saved_caches \
              /data/cassandra/hints \
              /data/cassandra/logs
+
+    # ── Handle node replacement after pod restart (Kubernetes) ──────────
+    # When a StatefulSet pod restarts, the cluster gossip may still hold
+    # an entry for the pod's IP, causing:
+    #   "A node with address /X.X.X.X:7000 already exists, cancelling join"
+    #
+    # Set CASSANDRA_REPLACE_ADDRESS to the IP to replace, or "auto" to
+    # use the current pod IP.  Uses replace_address_first_boot so the
+    # flag is ignored on subsequent normal restarts.
+    if [ -n "${CASSANDRA_REPLACE_ADDRESS:-}" ]; then
+        local replace_ip="$CASSANDRA_REPLACE_ADDRESS"
+        if [ "$replace_ip" = "auto" ]; then
+            replace_ip="$(hostname -i 2>/dev/null)"
+        fi
+        if [ -n "$replace_ip" ]; then
+            echo "Enabling replace_address_first_boot=${replace_ip}"
+            export JVM_EXTRA_OPTS="${JVM_EXTRA_OPTS:-} -Dcassandra.replace_address_first_boot=${replace_ip}"
+        fi
+    fi
 }
 
 if [ "$1" = "cassandra" ]; then
