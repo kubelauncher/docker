@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b
 
-ARG KUBECTL_VERSION=1.35.4
+ARG KUBECTL_VERSION=1.36.0
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.title="kubectl" \
