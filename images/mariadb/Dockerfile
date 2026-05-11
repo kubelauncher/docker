@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:26.04@sha256:5e275723f82c67e387ba9e3c24baa0abdcb268917f276a0561c97bef9450d0b4
+FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
 
 ARG MARIADB_VERSION=12.2.2
 
@@ -19,8 +19,8 @@ RUN MARIADB_MINOR=$(echo "${MARIADB_VERSION}" | cut -d. -f1-2) \
         ca-certificates curl gnupg \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL 'https://mariadb.org/mariadb_release_signing_key.pgp' \
-        -o /etc/apt/keyrings/mariadb-keyring.pgp \
-    && echo "deb [signed-by=/etc/apt/keyrings/mariadb-keyring.pgp] https://deb.mariadb.org/${MARIADB_MINOR}/ubuntu noble main" \
+        | gpg --dearmor -o /etc/apt/keyrings/mariadb-keyring.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/mariadb-keyring.gpg] https://deb.mariadb.org/${MARIADB_MINOR}/ubuntu noble main" \
         > /etc/apt/sources.list.d/mariadb.list \
     && apt-get update \
     && MARIADB_PKG_VER="$(apt-cache madison mariadb-server | awk -F'|' '/mariadb/ {gsub(/ /,"",$2); print $2; exit}')" \
