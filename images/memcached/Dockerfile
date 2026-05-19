@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64 AS builder
 
-ARG MEMCACHED_VERSION=1.6.41
+ARG MEMCACHED_VERSION=1.6.42
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
 
-ARG MEMCACHED_VERSION=1.6.41
+ARG MEMCACHED_VERSION=1.6.42
 
 LABEL org.opencontainers.image.title="memcached" \
       org.opencontainers.image.description="memcached packaged with love by KubeLauncher" \
