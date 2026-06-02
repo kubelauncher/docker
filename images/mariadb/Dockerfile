@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
 
-ARG MARIADB_VERSION=12.2.2
+ARG MARIADB_VERSION=12.3.2
 
 LABEL org.opencontainers.image.title="mariadb" \
       org.opencontainers.image.description="mariadb packaged with love by KubeLauncher" \
