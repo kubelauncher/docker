@@ -12,8 +12,21 @@ needs_cluster_config() {
     [ "$REDIS_CLUSTER_ENABLED" = "yes" ]
 }
 
+needs_password_injection() {
+    [ -n "$REDIS_PASSWORD" ]
+}
+
 needs_runtime_config() {
-    needs_replication_config || needs_cluster_config
+    needs_replication_config || needs_cluster_config || needs_password_injection
+}
+
+append_password_config() {
+    local conf="$1"
+    if needs_password_injection; then
+        # Appended last so it overrides any requirepass already present in the
+        # mounted ConfigMap — keeps the Secret as the single source of truth.
+        echo "requirepass ${REDIS_PASSWORD}" >> "$conf"
+    fi
 }
 
 append_replication_config() {
@@ -45,6 +58,7 @@ setup_redis_conf() {
         if [ ! -w "$REDIS_CONF" ] || needs_runtime_config; then
             echo "Using existing config, copying to writable location" >&2
             cp "$REDIS_CONF" "$REDIS_CONF_RUNTIME"
+            append_password_config "$REDIS_CONF_RUNTIME"
             append_replication_config "$REDIS_CONF_RUNTIME"
             append_cluster_config "$REDIS_CONF_RUNTIME"
             echo "$REDIS_CONF_RUNTIME"
@@ -65,9 +79,7 @@ appendonly yes
 protected-mode no
 EOF
 
-    if [ -n "$REDIS_PASSWORD" ]; then
-        echo "requirepass ${REDIS_PASSWORD}" >> "$REDIS_CONF"
-    fi
+    append_password_config "$REDIS_CONF"
 
     if [ -n "$REDIS_MAXMEMORY" ]; then
         echo "maxmemory ${REDIS_MAXMEMORY}" >> "$REDIS_CONF"
