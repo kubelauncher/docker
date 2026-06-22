@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:26.04@sha256:e153663f92c94118ff22a5dc397b59b351ffd695480566debb5850e017e5937a AS builder
+FROM ubuntu:26.04@sha256:53958ec7b67c2c9355df922dd08dbf0360611f8c3cdb656875e81873db9ffdba AS builder
 
 ARG MEMCACHED_VERSION=1.6.42
 
@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && strip /opt/memcached/bin/memcached \
     && rm -rf /var/lib/apt/lists/*
 
-FROM ubuntu:26.04@sha256:e153663f92c94118ff22a5dc397b59b351ffd695480566debb5850e017e5937a
+FROM ubuntu:26.04@sha256:53958ec7b67c2c9355df922dd08dbf0360611f8c3cdb656875e81873db9ffdba
 
 ARG MEMCACHED_VERSION=1.6.42
 
