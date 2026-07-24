@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
-FROM rabbitmq:4.3.3@sha256:663fddba4ee70900e2323b065b5b49ce0a823af4edb657fafe90d656cb6a644d
+FROM rabbitmq:4.3.4@sha256:67b423ae0c5d61a6a88211b511635f89959f27f207a374194d2568cc89b3cdb7
 
-ARG RABBITMQ_VERSION=4.3.3
+ARG RABBITMQ_VERSION=4.3.4
 
 LABEL org.opencontainers.image.title="rabbitmq" \
       org.opencontainers.image.description="rabbitmq packaged with love by KubeLauncher" \
