@@ -14,7 +14,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
     && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
     && groupadd -r -g 1001 postgres \
-    && useradd -r -u 1001 -g postgres -d /data/postgresql -s /bin/bash postgres \
+    && useradd -r -u 1001 -g postgres -G 0 -d /data/postgresql -s /bin/bash postgres \
     && apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg \
     && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
@@ -29,17 +29,28 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
         "postgresql-contrib-${POSTGRESQL_VERSION}" \
         tzdata \
         bash \
-    && mkdir -p /data/postgresql/data \
+    && mkdir -p /data/postgresql \
                 /docker-entrypoint-initdb.d \
                 /docker-entrypoint-preinitdb.d \
                 /opt/postgresql/conf \
                 /run/postgresql \
-    && chown -R postgres:postgres /data/postgresql \
-                                    /docker-entrypoint-initdb.d \
-                                    /docker-entrypoint-preinitdb.d \
-                                    /opt/postgresql \
-                                    /run/postgresql \
-    && chmod 700 /data/postgresql/data \
+    # Support arbitrary user ids (OpenShift): dirs are owned by the root group (GID 0)
+    # and group perms mirror the owner, so any UID in group 0 can read/write them.
+    # initdb creates the data dir itself, so it is owned by the runtime UID and the
+    # entrypoint can lock it down to 0700 as PostgreSQL requires.
+    && chown -R 1001:0 /data/postgresql \
+                        /docker-entrypoint-initdb.d \
+                        /docker-entrypoint-preinitdb.d \
+                        /opt/postgresql \
+                        /run/postgresql \
+    && chmod -R g=u /data/postgresql \
+                    /docker-entrypoint-initdb.d \
+                    /docker-entrypoint-preinitdb.d \
+                    /opt/postgresql \
+                    /run/postgresql \
+    # Make /etc/passwd group-writable so the entrypoint can register the
+    # arbitrary runtime UID (OpenShift), which tools like initdb require.
+    && chmod g=u /etc/passwd \
     && apt-get purge -y --auto-remove curl gnupg \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /usr/sbin/policy-rc.d

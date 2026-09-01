@@ -25,8 +25,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
             etcd-v${ETCD_VERSION}-linux-${ARCH}/etcdutl \
     && mkdir -p /data/etcd \
     && groupadd -r -g 1001 etcd \
-    && useradd -r -u 1001 -g etcd -d /data/etcd -s /bin/bash etcd \
-    && chown -R etcd:etcd /data/etcd \
+    && useradd -r -u 1001 -g etcd -G 0 -d /data/etcd -s /bin/bash etcd \
+    # Support arbitrary user ids (OpenShift): the data dir is owned by the root
+    # group (GID 0) and group perms mirror the owner, so any UID in group 0 can
+    # read/write it. etcd creates its member data under this dir at runtime.
+    && chown -R 1001:0 /data/etcd \
+    && chmod -R g=u /data/etcd \
     && apt-get purge -y --auto-remove curl \
     && rm -rf /var/lib/apt/lists/*
 

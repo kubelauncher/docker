@@ -26,8 +26,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
                 /data/kafka/logs \
                 /opt/kafka/config \
     && groupadd -r -g 1001 kafka \
-    && useradd -r -u 1001 -g kafka -d /opt/kafka -s /bin/bash kafka \
-    && chown -R kafka:kafka /opt/kafka /data/kafka \
+    && useradd -r -u 1001 -g kafka -G 0 -d /opt/kafka -s /bin/bash kafka \
+    # Support arbitrary user ids (OpenShift): dirs are owned by the root group (GID 0)
+    # and group perms mirror the owner, so any UID in group 0 can read/write them.
+    && chown -R 1001:0 /opt/kafka /data/kafka \
+    && chmod -R g=u /opt/kafka /data/kafka \
     && apt-get purge -y --auto-remove curl \
     && rm -rf /var/lib/apt/lists/*
 

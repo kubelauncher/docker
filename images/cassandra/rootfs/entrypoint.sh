@@ -56,7 +56,10 @@ setup_config() {
 
 if [ "$1" = "cassandra" ]; then
     setup_config
-    exec cassandra -f $CASSANDRA_EXTRA_FLAGS
+    # -R allows Cassandra to run in the root group (GID 0). OpenShift assigns an
+    # arbitrary UID that always belongs to group 0, which the launcher otherwise
+    # rejects. The process is not actually root, only a member of the root group.
+    exec cassandra -f -R $CASSANDRA_EXTRA_FLAGS
 fi
 
 exec "$@"

@@ -37,9 +37,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         tzdata \
     && groupadd -r -g 1001 redis \
-    && useradd -r -u 1001 -g redis -d /data redis \
+    && useradd -r -u 1001 -g redis -G 0 -d /data redis \
     && mkdir -p /data /opt/redis/etc \
-    && chown -R redis:redis /data /opt/redis \
+    # Support arbitrary user ids (OpenShift): dirs are owned by the root group
+    # (GID 0) and group perms mirror the owner, so any UID in group 0 can
+    # read/write them. Redis writes its data and runtime config under /data.
+    && chown -R 1001:0 /data /opt/redis \
+    && chmod -R g=u /data /opt/redis \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /opt/redis/bin/ /opt/redis/bin/

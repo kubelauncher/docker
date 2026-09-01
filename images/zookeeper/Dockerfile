@@ -25,8 +25,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && mkdir -p /data/zookeeper/data \
                 /data/zookeeper/logs \
     && groupadd -r -g 1001 zookeeper \
-    && useradd -r -u 1001 -g zookeeper -d /opt/zookeeper -s /bin/bash zookeeper \
-    && chown -R zookeeper:zookeeper /opt/zookeeper /data/zookeeper \
+    && useradd -r -u 1001 -g zookeeper -G 0 -d /opt/zookeeper -s /bin/bash zookeeper \
+    # Support arbitrary user ids (OpenShift): dirs are owned by the root group (GID 0)
+    # and group perms mirror the owner, so any UID in group 0 can read/write them.
+    && chown -R 1001:0 /opt/zookeeper /data/zookeeper \
+    && chmod -R g=u /opt/zookeeper /data/zookeeper \
     && apt-get purge -y --auto-remove curl \
     && rm -rf /var/lib/apt/lists/*
 

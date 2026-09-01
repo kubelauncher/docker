@@ -3,6 +3,15 @@ set -e
 
 DATADIR="${MARIADB_DATA_DIR:-/data/mariadb/data}"
 
+# Support arbitrary user ids (OpenShift): --user=mariadb makes mariadb-install-db
+# chown the data dir to the mariadb user, which fails when the container runs as an
+# unprivileged arbitrary UID. Only pass --user when we are root and can drop privileges;
+# otherwise the tools simply run as the current user.
+USER_FLAG="--user=mariadb"
+if [ "$(id -u)" != "0" ]; then
+    USER_FLAG=""
+fi
+
 get_server_id() {
     if [ "${MARIADB_REPLICATION_MODE}" = "primary" ]; then
         echo 1
@@ -52,7 +61,7 @@ init_replication_secondary() {
 
     echo "Initializing MariaDB secondary..."
     mariadb-install-db \
-        --user=mariadb \
+        $USER_FLAG \
         --datadir="$DATADIR" \
         --auth-root-authentication-method=normal \
         --skip-test-db
@@ -61,7 +70,7 @@ init_replication_secondary() {
     server_id=$(get_server_id)
 
     mariadbd \
-        --user=mariadb \
+        $USER_FLAG \
         --datadir="$DATADIR" \
         --skip-networking \
         --socket=/run/mysqld/mysqld.sock \
@@ -125,7 +134,7 @@ init_database() {
     echo "Initializing MariaDB database..."
 
     mariadb-install-db \
-        --user=mariadb \
+        $USER_FLAG \
         --datadir="$DATADIR" \
         --auth-root-authentication-method=normal \
         --skip-test-db
@@ -171,7 +180,7 @@ FLUSH PRIVILEGES;
 EOSQL
 
     mariadbd \
-        --user=mariadb \
+        $USER_FLAG \
         --datadir="$DATADIR" \
         --skip-networking \
         --socket=/run/mysqld/mysqld.sock &
@@ -246,7 +255,7 @@ if [ "$1" = "mariadbd" ]; then
 
     exec mariadbd \
         $EXTRA_FILE_FLAG \
-        --user=mariadb \
+        $USER_FLAG \
         --datadir="$DATADIR" \
         --port="${MARIADB_PORT_NUMBER:-3306}" \
         --bind-address=0.0.0.0 \

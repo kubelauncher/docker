@@ -23,8 +23,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         | tar xz --strip-components=1 -C /opt/keycloak \
     && mkdir -p /data/keycloak \
     && groupadd -r -g 1001 keycloak \
-    && useradd -r -u 1001 -g keycloak -d /opt/keycloak -s /bin/bash keycloak \
-    && chown -R keycloak:keycloak /opt/keycloak /data/keycloak \
+    && useradd -r -u 1001 -g keycloak -G 0 -d /opt/keycloak -s /bin/bash keycloak \
+    # Support arbitrary user ids (OpenShift): dirs are owned by the root group (GID 0)
+    # and group perms mirror the owner, so any UID in group 0 can read/write them.
+    && chown -R 1001:0 /opt/keycloak /data/keycloak \
+    && chmod -R g=u /opt/keycloak /data/keycloak \
     && apt-get purge -y --auto-remove curl \
     && rm -rf /var/lib/apt/lists/*
 

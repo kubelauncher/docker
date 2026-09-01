@@ -28,8 +28,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
                 /data/cassandra/hints \
                 /data/cassandra/logs \
     && groupadd -r -g 1001 cassandra \
-    && useradd -r -u 1001 -g cassandra -d /opt/cassandra -s /bin/bash cassandra \
-    && chown -R cassandra:cassandra /opt/cassandra /data/cassandra \
+    && useradd -r -u 1001 -g cassandra -G 0 -d /opt/cassandra -s /bin/bash cassandra \
+    # Support arbitrary user ids (OpenShift): dirs are owned by the root group (GID 0)
+    # and group perms mirror the owner, so any UID in group 0 can read/write them.
+    && chown -R 1001:0 /opt/cassandra /data/cassandra \
+    && chmod -R g=u /opt/cassandra /data/cassandra \
     && apt-get purge -y --auto-remove curl \
     && rm -rf /var/lib/apt/lists/*
 

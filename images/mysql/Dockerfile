@@ -15,7 +15,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
     && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
     && groupadd -r -g 1001 mysql \
-    && useradd -r -u 1001 -g mysql -d /data/mysql -s /bin/bash mysql \
+    && useradd -r -u 1001 -g mysql -G 0 -d /data/mysql -s /bin/bash mysql \
     && apt-get update \
     && MYSQL_PKG_VER="$(apt-cache madison mysql-server | awk -F'|' 'NR==1 {gsub(/ /,"",$2); print $2}')" \
     && case "${MYSQL_PKG_VER}" in \
@@ -27,15 +27,26 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
         "mysql-client=${MYSQL_PKG_VER}" \
         tzdata \
         bash \
-    && mkdir -p /data/mysql/data \
+    && mkdir -p /data/mysql \
                 /docker-entrypoint-initdb.d \
                 /opt/mysql/conf \
                 /run/mysqld \
-    && chown -R 1001:1001 /data/mysql \
-                           /docker-entrypoint-initdb.d \
-                           /opt/mysql \
-                           /run/mysqld \
-    && chmod 700 /data/mysql/data \
+                /var/log/mysql \
+    # Support arbitrary user ids (OpenShift): dirs are owned by the root group (GID 0)
+    # and group perms mirror the owner, so any UID in group 0 can read/write them.
+    # The entrypoint creates the data dir itself (mysqld --initialize requires it to
+    # not exist), so it is owned by the runtime UID. /var/log/mysql is the log_error
+    # target from the packaged my.cnf, so the running server must be able to write it.
+    && chown -R 1001:0 /data/mysql \
+                        /docker-entrypoint-initdb.d \
+                        /opt/mysql \
+                        /run/mysqld \
+                        /var/log/mysql \
+    && chmod -R g=u /data/mysql \
+                    /docker-entrypoint-initdb.d \
+                    /opt/mysql \
+                    /run/mysqld \
+                    /var/log/mysql \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /usr/sbin/policy-rc.d
 

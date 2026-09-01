@@ -4,6 +4,18 @@ set -e
 DATADIR="${MONGODB_DATA_DIR:-/data/mongodb/data}"
 LOGDIR="${MONGODB_LOG_DIR:-/data/mongodb/logs}"
 
+# Support arbitrary user ids (OpenShift): when the container runs as a UID that
+# has no /etc/passwd entry, register one on the fly and point HOME at a writable
+# dir. Otherwise HOME is "/" and mongosh fails to create its config dir, printing
+# warnings on stdout that corrupt the replica-set init output parsing.
+# Requires /etc/passwd to be group-writable (set in the image).
+ensure_passwd_entry() {
+    if ! whoami >/dev/null 2>&1 && [ -w /etc/passwd ]; then
+        echo "mongodb:x:$(id -u):0:MongoDB:/data/mongodb:/bin/bash" >> /etc/passwd
+    fi
+    export HOME=/data/mongodb
+}
+
 needs_init() {
     [ -n "$MONGODB_ROOT_PASSWORD" ] && return 0
     [ -n "$MONGODB_USERNAME" ] && [ -n "$MONGODB_PASSWORD" ] && [ -n "$MONGODB_DATABASE" ] && return 0
@@ -21,6 +33,18 @@ setup_keyfile() {
         exit 1
     fi
     echo "Keyfile found at $MONGODB_KEYFILE_PATH"
+
+    # mongod requires the keyfile to be readable only by its owner (0600/0400) and
+    # rejects group- or world-readable files. A mounted Secret cannot satisfy this
+    # for an arbitrary runtime UID, so copy it to a private, owner-only location.
+    local secure_keyfile="/data/mongodb/keyfile.mongodb"
+    if ! cp "$MONGODB_KEYFILE_PATH" "$secure_keyfile" 2>/dev/null; then
+        echo "ERROR: Cannot copy keyfile to $secure_keyfile"
+        exit 1
+    fi
+    chmod 0600 "$secure_keyfile"
+    MONGODB_KEYFILE_PATH="$secure_keyfile"
+    export MONGODB_KEYFILE_PATH
 }
 
 wait_for_tcp() {
@@ -268,6 +292,8 @@ EOJS
 }
 
 if [ "$1" = "mongod" ]; then
+    ensure_passwd_entry
+
     mkdir -p "$DATADIR"
     mkdir -p "$LOGDIR"
 

@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+# Support arbitrary user ids (OpenShift): when the container runs as a UID that
+# has no /etc/passwd entry, register one on the fly so Erlang can resolve the
+# effective user and write $HOME/.erlang.cookie. Requires /etc/passwd to be
+# group-writable (set in the image).
+ensure_passwd_entry() {
+    if ! whoami >/dev/null 2>&1 && [ -w /etc/passwd ]; then
+        echo "rabbitmq:x:$(id -u):0:RabbitMQ:${HOME:-/var/lib/rabbitmq}:/bin/bash" >> /etc/passwd
+    fi
+}
+
 setup_rabbitmq() {
     # Ensure HOME is set (may not be in Kubernetes)
     export HOME="${HOME:-/data/rabbitmq}"
@@ -65,6 +75,7 @@ EOF
 }
 
 if [ "$1" = "rabbitmq-server" ]; then
+    ensure_passwd_entry
     setup_rabbitmq
     echo "Starting RabbitMQ server..."
     shift

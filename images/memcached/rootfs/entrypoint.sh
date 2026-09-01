@@ -3,12 +3,19 @@ set -e
 
 if [ "$1" = "memcached" ]; then
     shift
+    # memcached refuses to run as root unless it can drop privileges via -u, but
+    # -u itself requires root to setuid. Under an arbitrary UID (OpenShift) the
+    # process is already unprivileged, so pass -u only when running as root.
+    user_flag=""
+    if [ "$(id -u)" = "0" ]; then
+        user_flag="-u memcached"
+    fi
     set -- memcached \
         -p "${MEMCACHED_PORT:-11211}" \
         -m "${MEMCACHED_MAX_MEMORY:-64}" \
         -t "${MEMCACHED_THREADS:-4}" \
         -c "${MEMCACHED_MAX_CONNECTIONS:-1024}" \
-        -u memcached \
+        $user_flag \
         $MEMCACHED_EXTRA_FLAGS \
         "$@"
 fi

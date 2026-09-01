@@ -32,9 +32,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libevent-2.1-7t64 ca-certificates tzdata netcat-openbsd \
     && groupadd -r -g 1001 memcached \
-    && useradd -r -u 1001 -g memcached -d /data memcached \
+    && useradd -r -u 1001 -g memcached -G 0 -d /data memcached \
     && mkdir -p /data \
-    && chown -R memcached:memcached /data \
+    # Support arbitrary user ids (OpenShift): the dir is owned by the root group
+    # (GID 0) and group perms mirror the owner, so any UID in group 0 can
+    # read/write it.
+    && chown -R 1001:0 /data \
+    && chmod -R g=u /data \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /opt/memcached/bin/memcached /usr/local/bin/memcached

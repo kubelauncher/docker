@@ -27,13 +27,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && chmod +x /usr/local/bin/kubectl \
     && rm /tmp/kubectl.sha256 \
     && groupadd -r -g 1001 kubectl \
-    && useradd -r -u 1001 -g kubectl -d /home/kubectl -m -s /bin/bash kubectl \
+    && useradd -r -u 1001 -g kubectl -G 0 -d /home/kubectl -m -s /bin/bash kubectl \
     && mkdir -p /home/kubectl/.kube \
-    && chown -R kubectl:kubectl /home/kubectl \
+    # Support arbitrary user ids (OpenShift): HOME is owned by the root group
+    # (GID 0) and group perms mirror the owner, so any UID in group 0 can write
+    # ~/.kube/cache.
+    && chown -R 1001:0 /home/kubectl \
+    && chmod -R g=u /home/kubectl \
     && apt-get purge -y --auto-remove curl \
     && rm -rf /var/lib/apt/lists/*
 
-ENV PATH="/usr/local/bin:${PATH}"
+# HOME is set explicitly so kubectl resolves ~/.kube regardless of the runtime
+# UID (an arbitrary OpenShift UID has no passwd entry, hence no home lookup).
+ENV PATH="/usr/local/bin:${PATH}" \
+    HOME="/home/kubectl"
 
 USER 1001
 WORKDIR /home/kubectl
