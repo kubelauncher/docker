@@ -292,8 +292,10 @@
       "automerge": true
     },
     {
-      "matchManagers": ["github-actions"],
-      "automerge": false
+      "matchManagers": [
+        "github-actions"
+      ],
+      "automerge": true
     }
   ]
 }
