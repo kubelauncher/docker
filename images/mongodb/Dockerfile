@@ -15,7 +15,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
     && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
     && groupadd -r -g 1001 mongodb \
-    && useradd -r -u 1001 -g mongodb -d /data/mongodb -s /bin/bash mongodb \
+    && useradd -r -u 1001 -g mongodb -G 0 -d /data/mongodb -s /bin/bash mongodb \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg \
@@ -28,16 +28,24 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
         mongodb-org \
         tzdata \
         bash \
-    && mkdir -p /data/mongodb/data \
-                /data/mongodb/logs \
+    && mkdir -p /data/mongodb/logs \
                 /docker-entrypoint-initdb.d \
                 /opt/mongodb \
                 /opt/mongodb/keyfile \
-    && chown -R mongodb:mongodb /data/mongodb \
-                                 /docker-entrypoint-initdb.d \
-                                 /opt/mongodb \
-    && chmod 700 /data/mongodb/data \
-    && chmod 700 /opt/mongodb/keyfile \
+    # Support arbitrary user ids (OpenShift): dirs are owned by the root group (GID 0)
+    # and group perms mirror the owner, so any UID in group 0 can read/write them.
+    # The data dir is not pre-created: the entrypoint creates it at runtime so it is
+    # owned by the effective UID, which mongod requires for its dbpath.
+    && chown -R 1001:0 /data/mongodb \
+                        /docker-entrypoint-initdb.d \
+                        /opt/mongodb \
+    && chmod -R g=u /data/mongodb \
+                    /docker-entrypoint-initdb.d \
+                    /opt/mongodb \
+    # Make /etc/passwd group-writable so the entrypoint can register the arbitrary
+    # runtime UID (OpenShift). Without a passwd entry, HOME defaults to "/" and
+    # mongosh cannot create its config dir, corrupting init scripts that parse its output.
+    && chmod g=u /etc/passwd \
     && apt-get purge -y --auto-remove curl gnupg \
     && rm -rf /var/lib/apt/lists/*
 

@@ -33,17 +33,24 @@ RUN MARIADB_MINOR=$(echo "${MARIADB_VERSION}" | cut -d. -f1-2) \
         "mariadb-client=${MARIADB_PKG_VER}" \
         tzdata \
         bash \
-    && mkdir -p /data/mariadb/data \
+    && mkdir -p /data/mariadb \
                 /docker-entrypoint-initdb.d \
                 /opt/mariadb/conf \
                 /run/mysqld \
     && groupadd -r -g 1001 mariadb \
-    && useradd -r -u 1001 -g mariadb -d /data/mariadb -s /bin/bash mariadb \
-    && chown -R mariadb:mariadb /data/mariadb \
-                                 /docker-entrypoint-initdb.d \
-                                 /opt/mariadb \
-                                 /run/mysqld \
-    && chmod 700 /data/mariadb/data \
+    && useradd -r -u 1001 -g mariadb -G 0 -d /data/mariadb -s /bin/bash mariadb \
+    # Support arbitrary user ids (OpenShift): dirs are owned by the root group (GID 0)
+    # and group perms mirror the owner, so any UID in group 0 can read/write them.
+    # The entrypoint creates the data dir itself (mariadb-install-db requires it to
+    # not exist), so it is owned by the runtime UID.
+    && chown -R 1001:0 /data/mariadb \
+                        /docker-entrypoint-initdb.d \
+                        /opt/mariadb \
+                        /run/mysqld \
+    && chmod -R g=u /data/mariadb \
+                    /docker-entrypoint-initdb.d \
+                    /opt/mariadb \
+                    /run/mysqld \
     && apt-get purge -y --auto-remove curl gnupg \
     && rm -rf /var/lib/apt/lists/*
 

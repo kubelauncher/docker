@@ -23,14 +23,24 @@ RUN set -eux \
          exit 1; \
        fi \
     && groupmod -g 1001 rabbitmq \
-    && usermod -u 1001 -g 1001 rabbitmq \
+    && usermod -u 1001 -g 1001 -G 0 rabbitmq \
     && rabbitmq-plugins enable --offline rabbitmq_management rabbitmq_prometheus \
     && mkdir -p /data/rabbitmq/conf \
                /data/rabbitmq/data \
                /data/rabbitmq/logs \
-    && chown -R 1001:1001 /var/lib/rabbitmq \
-                           /etc/rabbitmq \
-                           /data/rabbitmq \
+    # Support arbitrary user ids (OpenShift): dirs are owned by the root group
+    # (GID 0) and group perms mirror the owner, so any UID in group 0 can
+    # read/write them (HOME=/var/lib/rabbitmq, data, config and the Mnesia dirs).
+    && chown -R 1001:0 /var/lib/rabbitmq \
+                        /etc/rabbitmq \
+                        /data/rabbitmq \
+    && chmod -R g=u /var/lib/rabbitmq \
+                    /etc/rabbitmq \
+                    /data/rabbitmq \
+    # Make /etc/passwd group-writable so the entrypoint can register the
+    # arbitrary runtime UID (OpenShift), which Erlang requires to resolve the
+    # effective user and write $HOME/.erlang.cookie.
+    && chmod g=u /etc/passwd \
     && rm -f /var/lib/rabbitmq/.erlang.cookie
 
 COPY rootfs/entrypoint.sh /usr/local/bin/entrypoint.sh

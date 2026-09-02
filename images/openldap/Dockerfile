@@ -15,7 +15,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin/policy-rc.d \
     && printf '#!/bin/sh\nexit 0\n' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl \
     && groupadd -r -g 1001 openldap \
-    && useradd -r -u 1001 -g openldap -d /data/openldap -s /bin/bash openldap \
+    && useradd -r -u 1001 -g openldap -G 0 -d /data/openldap -s /bin/bash openldap \
     && apt-get update && apt-get install -y --no-install-recommends \
         slapd \
         ldap-utils \
@@ -31,13 +31,24 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
     && CONF_LDIF="/opt/openldap/default-config/cn=config/olcDatabase={0}config.ldif" \
     && perl -0777 -i -pe 's/\n //g' "$CONF_LDIF" \
     && sed -i '/^# CRC32/d' "$CONF_LDIF" \
-    && sed -i 's|by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by \* break|by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by dn.exact=gidNumber=1001+uidNumber=1001,cn=peercred,cn=external,cn=auth manage by * break|' "$CONF_LDIF" \
-    && chown -R openldap:openldap /data/openldap \
-                                    /opt/openldap \
-                                    /docker-entrypoint-initdb.d \
-                                    /etc/ldap \
-                                    /var/lib/ldap \
-                                    /var/run/slapd \
+    # Grant EXTERNAL/peercred config-manage to the runtime process. The default UID
+    # 1001 binds as gidNumber=1001+uidNumber=1001, while OpenShift's arbitrary UID
+    # always runs in group 0, so a dn.regex covers any uidNumber in gidNumber=0.
+    && sed -i 's|by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by \* break|by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by dn.exact=gidNumber=1001+uidNumber=1001,cn=peercred,cn=external,cn=auth manage by dn.regex="^gidNumber=0\\+uidNumber=[0-9]+,cn=peercred,cn=external,cn=auth$" manage by * break|' "$CONF_LDIF" \
+    # Support arbitrary user ids (OpenShift): dirs are owned by the root group (GID 0)
+    # and group perms mirror the owner, so any UID in group 0 can read/write them.
+    && chown -R 1001:0 /data/openldap \
+                        /opt/openldap \
+                        /docker-entrypoint-initdb.d \
+                        /etc/ldap \
+                        /var/lib/ldap \
+                        /var/run/slapd \
+    && chmod -R g=u /data/openldap \
+                    /opt/openldap \
+                    /docker-entrypoint-initdb.d \
+                    /etc/ldap \
+                    /var/lib/ldap \
+                    /var/run/slapd \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /usr/sbin/policy-rc.d
 

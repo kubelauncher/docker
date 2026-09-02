@@ -5,6 +5,16 @@ PG_BIN_DIR="/usr/lib/postgresql/${POSTGRESQL_VERSION:-17}/bin"
 PGDATA="${POSTGRESQL_DATA_DIR:-/data/postgresql/data}"
 export PGDATA
 
+# Support arbitrary user ids (OpenShift): when the container runs as a UID that
+# has no /etc/passwd entry, register one on the fly so PostgreSQL can resolve the
+# effective user. Requires /etc/passwd to be group-writable (set in the image).
+ensure_passwd_entry() {
+    if ! whoami >/dev/null 2>&1 && [ -w /etc/passwd ]; then
+        echo "postgres:x:$(id -u):0:PostgreSQL:/data/postgresql:/bin/bash" >> /etc/passwd
+        export HOME=/data/postgresql
+    fi
+}
+
 run_preinit_scripts() {
     if [ -d /docker-entrypoint-preinitdb.d/ ]; then
         for f in /docker-entrypoint-preinitdb.d/*.sh; do
@@ -165,6 +175,8 @@ run_init_scripts() {
 }
 
 if [ "$1" = "postgres" ]; then
+    ensure_passwd_entry
+
     run_preinit_scripts
 
     if [ "$POSTGRESQL_REPLICATION_MODE" = "slave" ]; then
