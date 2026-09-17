@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:26.04@sha256:cd21a4f68a617580279d4b091cb18e3af9fa8a87500665f0ae5f7f757d17d367 AS builder
 
-ARG REDIS_VERSION=8.10.1
+ARG REDIS_VERSION=8.10.2
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 FROM ubuntu:26.04@sha256:cd21a4f68a617580279d4b091cb18e3af9fa8a87500665f0ae5f7f757d17d367
 
-ARG REDIS_VERSION=8.10.1
+ARG REDIS_VERSION=8.10.2
 
 LABEL org.opencontainers.image.title="redis" \
       org.opencontainers.image.description="redis packaged with love by KubeLauncher" \
