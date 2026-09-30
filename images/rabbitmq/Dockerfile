@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM rabbitmq:4.3.6@sha256:d0bffe70e755f348625415f32b0a090662e5f06b3ba3f82a4c7aaa18621b1279
+FROM rabbitmq:4.3.6@sha256:1c520731d8059f426afbfc28ddbe34713003b71e13bf42c703bea677acbaeb91
 
 ARG RABBITMQ_VERSION=4.3.6
 
