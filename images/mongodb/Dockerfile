@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:26.04@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7
 
-ARG MONGODB_VERSION=8.3
+ARG MONGODB_VERSION=9.0
 
 LABEL org.opencontainers.image.title="mongodb" \
       org.opencontainers.image.description="mongodb packaged with love by KubeLauncher" \
