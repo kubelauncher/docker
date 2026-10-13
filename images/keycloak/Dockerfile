@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:26.04@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7
 
-ARG KEYCLOAK_VERSION=26.8.0
+ARG KEYCLOAK_VERSION=26.8.1
 
 LABEL org.opencontainers.image.title="keycloak" \
       org.opencontainers.image.description="keycloak packaged with love by KubeLauncher" \
