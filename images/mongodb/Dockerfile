@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:26.04@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7
 
-ARG MONGODB_VERSION=8.3
+ARG MONGODB_VERSION=9.0
 
 LABEL org.opencontainers.image.title="mongodb" \
       org.opencontainers.image.description="mongodb packaged with love by KubeLauncher" \
@@ -19,7 +19,7 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d && chmod +x /usr/sbin
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg \
-    && curl -fsSL "https://www.mongodb.org/static/pgp/server-8.0.asc" \
+    && curl -fsSL "https://pgp.mongodb.com/server-9.asc" \
         | gpg --dearmor -o /usr/share/keyrings/mongodb.gpg \
     && echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb.gpg] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/${MONGODB_VERSION} multiverse" \
         > /etc/apt/sources.list.d/mongodb.list \
