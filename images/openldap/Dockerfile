@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:26.04@sha256:c098726dd9b9733f3e885f8de0ef375206a311b0a317eadc40d347b1115fb944
 
-ARG OPENLDAP_VERSION=2_7_1
+ARG OPENLDAP_VERSION=2_7_2
 
 LABEL org.opencontainers.image.title="openldap" \
       org.opencontainers.image.description="openldap packaged with love by KubeLauncher" \
