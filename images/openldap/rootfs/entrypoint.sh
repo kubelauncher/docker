@@ -133,6 +133,14 @@ EOF
 }
 
 if [ "$1" = "slapd" ]; then
+    # containerd 2.x starts containers with RLIMIT_NOFILE close to 2^30. slapd sizes
+    # its descriptor table from it and does not come up in time for init, so cap the
+    # soft limit (lowering it needs no privilege).
+    NOFILE_LIMIT="${LDAP_NOFILE_LIMIT:-1024}"
+    CURRENT_NOFILE=$(ulimit -Sn)
+    if [ "$CURRENT_NOFILE" = "unlimited" ] || [ "$CURRENT_NOFILE" -gt "$NOFILE_LIMIT" ]; then
+        ulimit -Sn "$NOFILE_LIMIT"
+    fi
     setup_dirs
     init_ldap
     shift

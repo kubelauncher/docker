@@ -32,6 +32,7 @@ docker run -d --name openldap \
 | `LDAP_DATA_DIR` | `/data/openldap/data` | Path to the MDB data directory |
 | `LDAP_CONFIG_DIR` | `/data/openldap/config` | Path to the slapd config directory |
 | `LDAP_EXTRA_ARGS` | _(none)_ | Additional arguments passed to `slapd` |
+| `LDAP_NOFILE_LIMIT` | `1024` | Soft open-files limit applied before starting `slapd` (only lowers it). Very high runtime defaults, such as containerd 2.x, make `slapd` start too slowly |
 
 ## Ports
 
